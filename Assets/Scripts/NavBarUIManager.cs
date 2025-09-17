@@ -19,7 +19,7 @@ public class NavBarUIManager : MonoBehaviour
 
     public void CloseMapClick()
     {
-        SceneManager.LoadScene("ARScene");
+        SceneManager.LoadScene("MainScene");
     }
 
     public void OnMapClick() {

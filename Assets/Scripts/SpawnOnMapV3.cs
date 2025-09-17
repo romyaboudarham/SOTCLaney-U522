@@ -1,57 +1,71 @@
-using System;
-using Mapbox.BaseModule.Data.Vector2d;
-using Mapbox.BaseModule.Utilities;
-using Mapbox.BaseModule.Map;
-using Mapbox.BaseModule.Utilities.Attributes;
-using Mapbox.Utils;
 using UnityEngine;
 using System.Collections.Generic;
+using Mapbox.BaseModule.Data.Vector2d;   // ✅ For LatitudeLongitude
+using Mapbox.BaseModule.Map;
+using Mapbox.BaseModule.Utilities;
+using Mapbox.Example.Scripts.Map;
 
 namespace Mapbox.Example.Scripts.LocationBehaviours
 {
     public class SpawnOnMapV3 : MonoBehaviour
     {
-        [SerializeField] 
-        private MapBehaviourCore _mapCore;
+        [SerializeField] private MapboxMapBehaviour _mapCore;
+        [SerializeField] public GameObject[] _markerPrefabs;
+        [SerializeField] public string[] _locationStrings;
 
-        [SerializeField]
-        [Geocode]
-        private string[] _locationStrings;
+        [SerializeField] private float _spawnScale = 1f;
 
+        private MapboxMap _map;
         private LatitudeLongitude[] _locations;
         private List<GameObject> _spawnedObjects;
 
-        [SerializeField] 
-        private GameObject _markerPrefab;
-
-        [SerializeField] 
-        private float _spawnScale = 1f;
-
-        private MapboxMap _map;
+        void Awake()
+        {
+            DontDestroyOnLoad(gameObject); // keeps this object across scene loads
+        }
 
         private void Start()
         {
+            if (_mapCore == null)
+            {
+                Debug.LogError("MapBehaviourCore is not assigned!");
+                return;
+            }
+
+            // Parse input strings into Lat/Lng
             _locations = new LatitudeLongitude[_locationStrings.Length];
+            for (int i = 0; i < _locationStrings.Length; i++)
+            {
+                _locations[i] = Conversions.StringToLatLon(_locationStrings[i]);
+            }
+
             _spawnedObjects = new List<GameObject>();
 
-            // Wait until map initializes before spawning
+            // Wait for map to finish initializing
             _mapCore.Initialized += (map) =>
             {
                 _map = map;
+
+                // ✅ Recenter map root on the first location
+                if (_locations.Length > 0)
+                {
+                    //_map.MapInformation.SetInformation(_locations[0]);
+                    Debug.Log($"Map recentered on {_locations[0]}");
+                }
+
                 SpawnMarkers();
             };
         }
 
         private void SpawnMarkers()
         {
-            for (int i = 0; i < _locationStrings.Length; i++)
+            for (int i = 0; i < _locations.Length; i++)
             {
-                _locations[i] = Conversions.StringToLatLon(_locationStrings[i]);
-                var worldPos = _map.MapInformation.ConvertLatLngToPosition(_locations[i]);
-                Debug.Log($"Spawning marker {i} at {worldPos}");
-                var instance = Instantiate(_markerPrefab, worldPos, Quaternion.identity, transform);
+                Vector3 localPos = _map.MapInformation.ConvertLatLngToPosition(_locations[i]);
+                var instance = Instantiate(_markerPrefabs[i], localPos, Quaternion.identity, _mapCore.UnityContext.MapRoot);
                 instance.transform.localScale = Vector3.one * _spawnScale;
-                _spawnedObjects.Add(instance);
+
+                Debug.Log($"Spawned marker {i} at {localPos} (latlng: {_locations[i]})");
             }
         }
 
@@ -59,10 +73,11 @@ namespace Mapbox.Example.Scripts.LocationBehaviours
         {
             if (_map == null || _map.Status < InitializationStatus.ReadyForUpdates) return;
 
+            // Update marker positions (in case map shifts/recalculates)
             for (int i = 0; i < _spawnedObjects.Count; i++)
             {
-                var worldPos = _map.MapInformation.ConvertLatLngToPosition(_locations[i]);
-                _spawnedObjects[i].transform.localPosition = worldPos;
+                Vector3 localPos = _map.MapInformation.ConvertLatLngToPosition(_locations[i]);
+                _spawnedObjects[i].transform.localPosition = localPos;
                 _spawnedObjects[i].transform.localScale = Vector3.one * _spawnScale;
             }
         }
