@@ -1,9 +1,9 @@
 {
   "dependencies": {
     "com.mapbox.sdk": {
-      "version": "file:C:/Users/cca/Documents/mapbox-unity-sdk",
+      "version": "file:mapbox-unity-sdk",
       "depth": 0,
-      "source": "local",
+      "source": "embedded",
       "dependencies": {
         "com.unity.render-pipelines.universal": "10.10.1",
         "com.unity.nuget.newtonsoft-json": "3.2.1"
