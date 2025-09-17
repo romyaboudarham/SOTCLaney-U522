@@ -1,6 +1,6 @@
 # SOTCLaney-U522
 
-### Windows - You may need to Enable Long Paths Support
+### Cloning on Windows - You may need to Enable Long Paths Support
 1. Turn on long paths in Git
 
     Run this `git config --global core.longpaths true`
