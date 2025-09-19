@@ -2058,9 +2058,13 @@ MonoBehaviour:
   _markerPrefabs:
   - {fileID: 5375371263868219143, guid: f3e0f3d88611da94dab6792871ad1ca6, type: 3}
   - {fileID: 5375371263868219143, guid: f3e0f3d88611da94dab6792871ad1ca6, type: 3}
+  - {fileID: 5375371263868219143, guid: f3e0f3d88611da94dab6792871ad1ca6, type: 3}
+  - {fileID: 5375371263868219143, guid: f3e0f3d88611da94dab6792871ad1ca6, type: 3}
   _locationStrings:
-  - 37.768083, -122.398944
-  - 37.767582, -122.399364
+  - 37.796861, -122.263306
+  - 37.795861, -122.262611
+  - 37.795805, -122.261250
+  - 37.796416, -122.262833
   _spawnScale: 7
 --- !u!1 &1815118998
 GameObject:
@@ -3325,15 +3329,19 @@ PrefabInstance:
       objectReference: {fileID: 4601729577895354}
     - target: {fileID: 7512784582823842728, guid: 5cfb21e958bce467e966040b1be49240, type: 3}
       propertyPath: _latitudeLongitude
-      value: 37.7681, -122.3991
+      value: 37.79707071847145, -122.26337769560905
       objectReference: {fileID: 0}
     - target: {fileID: 7512784584146348565, guid: 5cfb21e958bce467e966040b1be49240, type: 3}
       propertyPath: MapInformation._zoom
       value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 7512784584146348565, guid: 5cfb21e958bce467e966040b1be49240, type: 3}
+      propertyPath: MapInformation._pitch
+      value: 45
+      objectReference: {fileID: 0}
+    - target: {fileID: 7512784584146348565, guid: 5cfb21e958bce467e966040b1be49240, type: 3}
       propertyPath: MapInformation._scale
-      value: 0.5
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 7512784584146348565, guid: 5cfb21e958bce467e966040b1be49240, type: 3}
       propertyPath: MapInformation._latitudeLongitudeString
