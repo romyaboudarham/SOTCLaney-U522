@@ -794,8 +794,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 877329830}
-        m_TargetAssemblyTypeName: NavBarUIManager, Assembly-CSharp
+      - m_Target: {fileID: 1691118463}
+        m_TargetAssemblyTypeName: SpawnOnMapV3, Assembly-CSharp
         m_MethodName: CloseMapClick
         m_Mode: 1
         m_Arguments:
@@ -856,7 +856,6 @@ GameObject:
   - component: {fileID: 877329828}
   - component: {fileID: 877329827}
   - component: {fileID: 877329826}
-  - component: {fileID: 877329830}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -950,18 +949,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &877329830
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 877329825}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e7f6bc308de9d8b40a2633b729f8c9a6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &923185051
 GameObject:
   m_ObjectHideFlags: 0
@@ -2055,17 +2042,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _mapCore: {fileID: 1316629399}
-  _markerPrefabs:
-  - {fileID: 5375371263868219143, guid: f3e0f3d88611da94dab6792871ad1ca6, type: 3}
-  - {fileID: 5375371263868219143, guid: f3e0f3d88611da94dab6792871ad1ca6, type: 3}
-  - {fileID: 5375371263868219143, guid: f3e0f3d88611da94dab6792871ad1ca6, type: 3}
-  - {fileID: 5375371263868219143, guid: f3e0f3d88611da94dab6792871ad1ca6, type: 3}
-  _locationStrings:
-  - 37.796861, -122.263306
-  - 37.795861, -122.262611
-  - 37.795805, -122.261250
-  - 37.796416, -122.262833
-  _spawnScale: 7
 --- !u!1 &1815118998
 GameObject:
   m_ObjectHideFlags: 0

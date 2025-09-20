@@ -4,6 +4,8 @@ using System;
 public class UIManager : MonoBehaviour
 {
     [SerializeField] private GameObject introPanel;
+    [SerializeField] private GameObject QuestUnlockedPanel;
+    [SerializeField] private GameObject QuestCompletedPanel;
 
     // Updated to take an Action callback
     public void ShowIntro(Action onComplete)
@@ -21,15 +23,33 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public void ShowTargetInstruction(string targetName)
+    public void ShowQuestUnlocked(string targetName)
     {
         Debug.Log($"Go find {targetName}!");
         // update UI text here
+
+        QuestUnlockedPanel.SetActive(true);
+
+        Invoke(nameof(CloseIntro), 3f);
+
+        void CloseIntro()
+        {
+            QuestUnlockedPanel.SetActive(false);
+        }
     }
 
-    public void ShowCompletionScreen()
+    public void ShowQuestComplete()
     {
         Debug.Log("Quest complete!");
         // show some completion UI here
+
+        QuestCompletedPanel.SetActive(true);
+
+        Invoke(nameof(CloseIntro), 3f);
+
+        void CloseIntro()
+        {
+            QuestCompletedPanel.SetActive(false);
+        }
     }
 }

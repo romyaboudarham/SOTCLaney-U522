@@ -5,12 +5,11 @@ using Mapbox.BaseModule.Data.Vector2d;   // For LatitudeLongitude
 using Mapbox.BaseModule.Map;
 using Mapbox.BaseModule.Utilities;
 using Mapbox.Example.Scripts.Map;
+using UnityEngine.SceneManagement;
 
 public class SpawnOnMapV3 : MonoBehaviour
 {
     [SerializeField] private MapboxMapBehaviour _mapCore;
-    [SerializeField] private float _spawnScale = 1f;
-
     private MapboxMap _map;
 
     private void Start()
@@ -28,6 +27,7 @@ public class SpawnOnMapV3 : MonoBehaviour
             // Ask TargetManager to initialize the map state
             if (TargetManager.Instance != null)
             {
+                TargetManager.Instance.SetMap(_map);
                 TargetManager.Instance.InitializeMap(this);
             }
         };
@@ -64,6 +64,7 @@ public class SpawnOnMapV3 : MonoBehaviour
         Vector3 localPos = _map.MapInformation.ConvertLatLngToPosition(latLng);
 
         var prefab = asDiscovered ? target.discoveredPrefab : target.undiscoveredPrefab;
+        var spawnScale = asDiscovered ? target.D_SpawnScale : target.UD_SpawnScale;
 
         var instance = Instantiate(
             prefab,
@@ -71,8 +72,13 @@ public class SpawnOnMapV3 : MonoBehaviour
             Quaternion.identity,
             _mapCore.UnityContext.MapRoot
         );
-        instance.transform.localScale = Vector3.one * _spawnScale;
+        instance.transform.localScale = Vector3.one * spawnScale;
 
         target.currentInstance = instance;
+    }
+
+    public void CloseMapClick()
+    {
+        SceneManager.LoadScene("MainScene");
     }
 }
