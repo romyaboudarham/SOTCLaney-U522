@@ -1,5 +1,5 @@
 # SOTCLaney-U522
-
+Built using Unity 2022.3, AR Foundation 5, Mapbox V3
 ### Cloning on Windows - You may need to Enable Long Paths Support
 1. Turn on long paths in Git
 
