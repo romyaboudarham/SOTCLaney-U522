@@ -76,9 +76,4 @@ public class SpawnOnMapV3 : MonoBehaviour
 
         target.currentInstance = instance;
     }
-
-    public void CloseMapClick()
-    {
-        SceneManager.LoadScene("MainScene");
-    }
 }

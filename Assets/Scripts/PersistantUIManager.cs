@@ -15,6 +15,6 @@ public class PersistentUIManager : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject); // keeps UI alive across scenes
+        //DontDestroyOnLoad(gameObject); // keeps UI alive across scenes
     }
 }

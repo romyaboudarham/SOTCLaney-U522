@@ -90,12 +90,12 @@ public class NavBarUIManager : MonoBehaviour
 
     }
 
-    public void OnMapClick() {
+    public void OnMapOpen() {
         //  if (instructionPanel.activeSelf) // close instruction panel on map load
         // {
         //     instructionPanel.SetActive(false);
         // }
-        SceneManager.LoadScene("MapScene");
+        CameraUIManager.Instance.ShowMap();
     }
 
     public void OnBackpackClick() {
