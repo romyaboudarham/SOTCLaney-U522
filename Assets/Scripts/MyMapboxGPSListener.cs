@@ -9,6 +9,7 @@ using Mapbox.BaseModule.Data.Vector2d;
 using Mapbox.Example.Scripts.LocationBehaviours;
 using Mapbox.BaseModule.Utilities;
 
+// TODO: MOVE ALL THIS CODE TO EITHER QUEST MANAGER OR SPAWNONMAPV3 (will be the new Target Manager)
 public class MyMapboxGPSListener : MonoBehaviour
 {
     public TMP_Text debugTxt;
@@ -97,6 +98,7 @@ public class MyMapboxGPSListener : MonoBehaviour
         //         debugTxt.text += "\nFOUND OBJECT 1 ";
         //     }
 
+        // TODO CHANGE THIS TO SPAWNONMAPV3 INSTANCE
         if (TargetManager.Instance != null)
         {
             Vector2d playerPos = new Vector2d(

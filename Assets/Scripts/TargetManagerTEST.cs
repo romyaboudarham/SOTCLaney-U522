@@ -4,19 +4,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using Mapbox.BaseModule.Data.Vector2d;
 using Mapbox.BaseModule.Map;
-using Mapbox.BaseModule.Utilities;
 using Mapbox.Example.Scripts.Map;
+using Mapbox.BaseModule.Utilities;
 
 using TMPro;
 
-public class TargetManager : MonoBehaviour
+public class TargetManagerTEST : MonoBehaviour
 {
     [SerializeField] private List<Target> targets;
     [SerializeField] private UIManager uiManager;
 
     private int currentTargetIndex = 0;
 
-    public static TargetManager Instance { get; private set; }
+    public static TargetManagerTEST Instance { get; private set; }
 
     [SerializeField] private MapboxMapBehaviour _mapCore;
     private MapboxMap _map;
@@ -42,7 +42,44 @@ public class TargetManager : MonoBehaviour
 
     void Start()
     {
-        
+        if (_mapCore == null)
+        {
+            Debug.LogError("MapboxMapBehaviour is not assigned!");
+            return;
+        }
+
+        _mapCore.Initialized += (map) =>
+        {
+            _map = map;
+            SpawnTargets(targets, currentTargetIndex);
+        };
+    }
+
+     public void SpawnTargets(List<Target> targets, int currentIndex)
+    {
+        for (int i = 0; i <= currentIndex; i++)
+        {
+            SpawnTargetOnMap(targets[i], targets[i].visited);
+        }
+    }
+
+    private void SpawnTargetOnMap(Target target, bool asDiscovered)
+    {
+        var latLng = Conversions.StringToLatLon(target.locationString);
+        Vector3 localPos = _map.MapInformation.ConvertLatLngToPosition(latLng);
+
+        var prefab = asDiscovered ? target.discoveredPrefab : target.undiscoveredPrefab;
+        var spawnScale = asDiscovered ? target.D_SpawnScale : target.UD_SpawnScale;
+
+        var instance = Instantiate(
+            prefab,
+            localPos,
+            Quaternion.identity,
+            _mapCore.UnityContext.MapRoot
+        );
+        instance.transform.localScale = Vector3.one * spawnScale;
+
+        target.currentInstance = instance;
     }
 
     public void ActivateTarget(int index)
@@ -70,12 +107,17 @@ public class TargetManager : MonoBehaviour
         }
     }
 
-    // Called when MapScene loads
-    public void InitializeMap(SpawnOnMapV3 spawner)
+    public void SpawnTarget(GameObject prefab, int index)
     {
-        if (spawner == null) return;
+        if (index < 0 || index >= targets.Count) return;
 
-        //spawner.InitializeAndSpawn(targets, currentTargetIndex);
+        Target t = targets[index];
+        if (prefab != null)
+        {
+            Vector3 worldPos = _map.MapInformation.ConvertLatLngToPosition(Conversions.StringToLatLon(t.locationString));
+            GameObject instance = Instantiate(prefab, worldPos, Quaternion.identity);
+            t.currentInstance = instance;
+        }
     }
 
     public void HandlePlayerNearCurrentTarget(Vector2d playerPos, double thresholdKm)
@@ -92,10 +134,10 @@ public class TargetManager : MonoBehaviour
         );
 
         // DEBUG LOGS START
-         debugTxt.text =
-            "Location: " +
-            "\nLat: " + playerPos.x +
-            "\nLon: " + playerPos.y;
+        debugTxt.text =
+           "Location: " +
+           "\nLat: " + playerPos.x +
+           "\nLon: " + playerPos.y;
 
         debugTxt.text += "\n\nDistance: " + distanceToTarget;
         // DEBUG LOGS END

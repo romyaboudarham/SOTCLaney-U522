@@ -8,6 +8,7 @@ TagManager:
   - MapCamera
   - MapUI
   - ARUI
+  - ARRig
   layers:
   - Default
   - TransparentFX

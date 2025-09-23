@@ -6,11 +6,15 @@ using Mapbox.BaseModule.Map;
 using Mapbox.BaseModule.Utilities;
 using Mapbox.Example.Scripts.Map;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 public class SpawnOnMapV3 : MonoBehaviour
 {
     [SerializeField] private MapboxMapBehaviour _mapCore;
     private MapboxMap _map;
+
+    [SerializeField] private List<Target> targets;
+    public TMP_Text debugTxt;
 
     private void Start()
     {
@@ -23,22 +27,15 @@ public class SpawnOnMapV3 : MonoBehaviour
         _mapCore.Initialized += (map) =>
         {
             _map = map;
-
-            // Ask TargetManager to initialize the map state
-            if (TargetManager.Instance != null)
-            {
-                TargetManager.Instance.SetMap(_map);
-                TargetManager.Instance.InitializeMap(this);
-            }
         };
     }
 
-    public void InitializeAndSpawn(List<Target> targets, int currentIndex)
+    public void InitializeAndSpawn(int currentIndex)
     {
-        StartCoroutine(WaitForMapReady(targets, currentIndex));
+        StartCoroutine(WaitForMapReady(currentIndex));
     }
 
-    private IEnumerator WaitForMapReady(List<Target> targets, int currentIndex)
+    private IEnumerator WaitForMapReady(int currentIndex)
     {
         while (_map.Status < InitializationStatus.ReadyForUpdates)
         {
@@ -46,11 +43,11 @@ public class SpawnOnMapV3 : MonoBehaviour
         }
 
         Debug.Log("Map is ready! Spawning targets now.");
-        SpawnTargets(targets, currentIndex);
+        SpawnTargets(currentIndex);
     }
 
 
-    public void SpawnTargets(List<Target> targets, int currentIndex)
+    public void SpawnTargets(int currentIndex)
     {
         for (int i = 0; i <= currentIndex; i++)
         {

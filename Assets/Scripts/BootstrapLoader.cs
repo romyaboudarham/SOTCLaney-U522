@@ -7,8 +7,9 @@ public class BootstrapLoader : MonoBehaviour
     {
         SceneManager.LoadSceneAsync("MapScene", LoadSceneMode.Additive).completed += (op) =>
         {
-            CameraUIManager.Instance.ShowAR(); // now references exist, ShowAR can safely disable MapCamera/UI
+            // Start waiting for BaseTiles/RuntimeObjectsRoot
+            CameraUIManager.Instance.StartCoroutine(CameraUIManager.Instance.WaitForMapAndThenShowAR());
         };
-        SceneManager.LoadSceneAsync("MainARScene", LoadSceneMode.Additive);
+        //SceneManager.LoadSceneAsync("MainARScene", LoadSceneMode.Additive);
     }
 }

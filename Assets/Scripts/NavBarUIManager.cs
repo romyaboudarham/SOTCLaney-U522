@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets;
 
 public class NavBarUIManager : MonoBehaviour
 {
@@ -34,6 +35,19 @@ public class NavBarUIManager : MonoBehaviour
     {
         get => m_ObjectMenu;
         set => m_ObjectMenu = value;
+    }
+
+    [SerializeField]
+    [Tooltip("The object spawner component in charge of spawning new objects.")]
+    ObjectSpawner m_ObjectSpawner;
+
+    /// <summary>
+    /// The object spawner component in charge of spawning new objects.
+    /// </summary>
+    public ObjectSpawner objectSpawner
+    {
+        get => m_ObjectSpawner;
+        set => m_ObjectSpawner = value;
     }
 
     [SerializeField]
@@ -90,7 +104,8 @@ public class NavBarUIManager : MonoBehaviour
 
     }
 
-    public void OnMapOpen() {
+    public void OnMapOpen()
+    {
         //  if (instructionPanel.activeSelf) // close instruction panel on map load
         // {
         //     instructionPanel.SetActive(false);
@@ -98,8 +113,9 @@ public class NavBarUIManager : MonoBehaviour
         CameraUIManager.Instance.ShowMap();
     }
 
-    public void OnBackpackClick() {
-         if (instructionPanel.activeSelf) // close instruction panel on map load
+    public void OnBackpackClick()
+    {
+        if (instructionPanel.activeSelf) // close instruction panel on map load
         {
             instructionPanel.SetActive(false);
         }
@@ -124,5 +140,31 @@ public class NavBarUIManager : MonoBehaviour
         m_ObjectMenuAnimator.SetBool("Show", false);
         m_ObjectMenu.SetActive(false);
         m_ShowObjectMenu = false;
+    }
+    
+    /// <summary>
+    /// Set the index of the object in the list on the ObjectSpawner to a specific value.
+    /// This is effectively an override of the default behavior or randomly spawning an object.
+    /// </summary>
+    /// <param name="objectIndex">The index in the array of the object to spawn with the ObjectSpawner</param>
+    public void SetObjectToSpawn(int objectIndex)
+    {
+        if (m_ObjectSpawner == null)
+        {
+            Debug.LogWarning("Object Spawner not configured correctly: no ObjectSpawner set.");
+        }
+        else
+        {
+            if (m_ObjectSpawner.objectPrefabs.Count > objectIndex)
+            {
+                m_ObjectSpawner.spawnOptionIndex = objectIndex;
+            }
+            else
+            {
+                Debug.LogWarning("Object Spawner not configured correctly: object index larger than number of Object Prefabs.");
+            }
+        }
+
+        //HideMenu();
     }
 }
