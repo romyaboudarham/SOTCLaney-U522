@@ -1295,16 +1295,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _mapCore: {fileID: 1316629399}
   targets:
-  - targetName: TESTLaneyStart
-    locationString: 37.79707071847145, -122.26337769560905
+  - targetName: 1Laney
+    locationString: 37.796861, -122.263306
     undiscoveredPrefab: {fileID: 5375371263868219143, guid: 4f4e53ab6aaf3d740a639d4c4bde8c3f, type: 3}
     UD_SpawnScale: 7
     discoveredPrefab: {fileID: 5771266494768688364, guid: b1f54517fc3bbee4e865fcfbdb6f6e22, type: 3}
     D_SpawnScale: 200
     visited: 0
     currentInstance: {fileID: 0}
-  - targetName: 1Laney
-    locationString: 37.796861, -122.263306
+  - targetName: TESTLaneyStart
+    locationString: 37.79707071847145, -122.26337769560905
     undiscoveredPrefab: {fileID: 5375371263868219143, guid: 4f4e53ab6aaf3d740a639d4c4bde8c3f, type: 3}
     UD_SpawnScale: 7
     discoveredPrefab: {fileID: 5771266494768688364, guid: b1f54517fc3bbee4e865fcfbdb6f6e22, type: 3}
