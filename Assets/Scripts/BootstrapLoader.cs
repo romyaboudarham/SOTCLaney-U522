@@ -10,6 +10,5 @@ public class BootstrapLoader : MonoBehaviour
             // Start waiting for BaseTiles/RuntimeObjectsRoot
             CameraUIManager.Instance.StartCoroutine(CameraUIManager.Instance.WaitForMapAndThenShowAR());
         };
-        //SceneManager.LoadSceneAsync("MainARScene", LoadSceneMode.Additive);
     }
 }

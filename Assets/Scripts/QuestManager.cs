@@ -19,7 +19,8 @@ public class QuestManager : MonoBehaviour
 
     private int currentStepIndex = -1; // -1 means greeting not done yet
 
-    private SpawnOnMapV3 mapSpawner;
+    private TargetManager targetManager;
+    private NavBarUIManager navBarUIManager;
 
     public static QuestManager Instance { get; private set; }
 
@@ -35,14 +36,16 @@ public class QuestManager : MonoBehaviour
 
     private void Start()
     {
-         mapSpawner = FindObjectOfType<SpawnOnMapV3>();
-        if (mapSpawner != null)
+        targetManager = FindObjectOfType<TargetManager>();
+        navBarUIManager = FindObjectOfType<NavBarUIManager>();
+        
+        if (targetManager != null)
         {
-            Debug.Log("SpawnOnMapV3 ready!");
+            Debug.Log("TargetManager ready!");
         }
         else
         {
-            Debug.LogError("No SpawnOnMapV3 found in the scene!");
+            Debug.LogError("No TargetManager found in the scene!");
         }
         ShowGreeting();
     }
@@ -50,7 +53,7 @@ public class QuestManager : MonoBehaviour
     #region Greeting
     private void ShowGreeting()
     {
-        greetingPanel.SetActive(true);
+        StartCoroutine(FadeInCanvas(greetingPanel.GetComponent<CanvasGroup>()));
         HideAllQuestPanels();
     }
 
@@ -61,7 +64,7 @@ public class QuestManager : MonoBehaviour
     }
     #endregion
 
-    private void HideAllQuestPanels()
+    public void HideAllQuestPanels()
     {
         foreach (var step in questSteps)
         {
@@ -82,14 +85,18 @@ public class QuestManager : MonoBehaviour
         // Show the target panel
         var step = questSteps[currentStepIndex];
         if (step.panel != null)
+        {
             step.panel.SetActive(true);
+            navBarUIManager.MapNewQuest();
+            StartCoroutine(FadeAwayCanvas(step.panel.GetComponent<CanvasGroup>()));
+        }
 
         // Spawn target prefab on map
-        if (step.prefab != null)
-        {
-            //TargetManager.Instance.SpawnTarget(step.prefab, currentStepIndex);
-            mapSpawner.InitializeAndSpawn(currentStepIndex);
-        }
+            if (step.prefab != null)
+            {
+                //TargetManager.Instance.SpawnTarget(step.prefab, currentStepIndex);
+                targetManager.InitializeAndSpawn(currentStepIndex);
+            }
     }
 
     // Called by TargetManager when the target is reached
@@ -112,5 +119,31 @@ public class QuestManager : MonoBehaviour
     public void OnTargetReachedPanelClosed()
     {
         StartNextQuestStep();
+    }
+
+    private IEnumerator FadeInCanvas(CanvasGroup canvas)
+    {
+        yield return new WaitForSeconds(3f);
+        while (canvas.alpha < 1f)
+        {
+            canvas.alpha += Time.deltaTime; // adjust speed if needed
+            yield return null;
+        }
+
+        canvas.gameObject.SetActive(true);
+    }
+
+    private IEnumerator FadeAwayCanvas(CanvasGroup canvas)
+    {
+        // wait 3 seconds first
+        yield return new WaitForSeconds(3f);
+
+        while (canvas.alpha > 0f)
+        {
+            canvas.alpha -= Time.deltaTime; // adjust speed if needed
+            yield return null;
+        }
+
+        canvas.gameObject.SetActive(false);
     }
 }

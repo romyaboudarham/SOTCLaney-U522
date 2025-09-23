@@ -1,84 +1,143 @@
 using System;
-using UnityEngine.SceneManagement;
-using System.Collections.Generic;
 using UnityEngine;
-using Mapbox.BaseModule.Data.Vector2d;
+using System.Collections.Generic;
+using System.Collections;
+using Mapbox.BaseModule.Data.Vector2d;   // For LatitudeLongitude
 using Mapbox.BaseModule.Map;
 using Mapbox.BaseModule.Utilities;
 using Mapbox.Example.Scripts.Map;
-
+using Mapbox.LocationModule; // GPS
 using TMPro;
 
 public class TargetManager : MonoBehaviour
 {
-    [SerializeField] private List<Target> targets;
-    [SerializeField] private UIManager uiManager;
-
-    private int currentTargetIndex = 0;
-
-    public static TargetManager Instance { get; private set; }
-
-    [SerializeField] private MapboxMapBehaviour _mapCore;
+    //[SerializeField] private MapboxMapBehaviour _mapCore;
+    private MapboxMapBehaviour _mapCore;
     private MapboxMap _map;
 
+    [SerializeField] private List<Target> targets;
     public TMP_Text debugTxt;
 
-    public void SetMap(Mapbox.BaseModule.Map.MapboxMap map)
-    {
-        _map = map;
-    }
+    private ILocationProvider  _locationProvider; // GPS
 
-    void Awake()
+    int currentTargetIndex = 0;
+    double thresholdKm = 0.02; // 20 meters
+
+    private QuestManager questManager;
+
+    private void Start()
     {
-        // Singleton-style persistence
-        if (Instance != null && Instance != this)
+        questManager = FindObjectOfType<QuestManager>();
+        _mapCore = FindObjectOfType<MapboxMapBehaviour>();
+
+        if (_mapCore == null)
         {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-    }
-
-
-    void Start()
-    {
-        
-    }
-
-    public void ActivateTarget(int index)
-    {
-        if (index >= targets.Count)
-        {
-            //uiManager.DONE();
+            Debug.LogError("MapboxMapBehaviour is not assigned!");
             return;
         }
 
-        uiManager.ShowQuestUnlocked(targets[index].targetName);
-    }
-
-    public void TargetReached(GameObject marker)
-    {
-        Target target = targets.Find(t => t.currentInstance == marker);
-
-        if (target != null && !target.visited)
+        _map = _mapCore.MapboxMap;
+        if (_map == null)
         {
-            target.visited = true;
-
-            // Advance quest step
-            currentTargetIndex++;
-            uiManager.ShowQuestComplete();
+            Debug.LogError("MapboxMap is null! Cannot spawn targets.");
+            return;
         }
     }
 
-    // Called when MapScene loads
-    public void InitializeMap(SpawnOnMapV3 spawner)
+    void OnEnable()
     {
-        if (spawner == null) return;
+        // Grab the right provider (Editor vs Device chosen by Mapbox internally)
+        _locationProvider = LocationProviderFactory.Instance.DefaultLocationProvider;
 
-        //spawner.InitializeAndSpawn(targets, currentTargetIndex);
+        if (_locationProvider == null)
+        {
+            debugTxt.text = "No LocationProvider found!";
+        }
+        else
+        {
+            debugTxt.text = $"Using {_locationProvider.GetType().Name} for GPS";
+        }
+
+        if (_locationProvider != null)
+        {
+            _locationProvider.OnLocationUpdated += HandleLocationUpdated;
+        }
     }
 
-    public void HandlePlayerNearCurrentTarget(Vector2d playerPos, double thresholdKm)
+    void OnDisable()
+    {
+        if (_locationProvider != null)
+        {
+            _locationProvider.OnLocationUpdated -= HandleLocationUpdated;
+        }
+    }
+
+    private void HandleLocationUpdated(Location location)
+    {
+        Vector2d playerPos = new Vector2d(
+            location.LatitudeLongitude.Latitude,
+            location.LatitudeLongitude.Longitude
+        );
+
+        HandlePlayerNearCurrentTarget(playerPos);
+    }
+
+    void OnDestroy()
+    {
+        if (_locationProvider != null)
+        {
+            _locationProvider.OnLocationUpdated -= HandleLocationUpdated;
+        }
+    }
+
+    public void InitializeAndSpawn(int currentIndex)
+    {
+        currentTargetIndex = currentIndex;
+        Debug.Log("Map is ready! Spawning targets now.");
+        SpawnTargets(currentTargetIndex);
+        //StartCoroutine(WaitForMapReady());
+    }
+
+    // private IEnumerator WaitForMapReady()
+    // {
+    //     while (_map.Status < InitializationStatus.ReadyForUpdates)
+    //     {
+    //         yield return null; // wait for next frame
+    //     }
+
+    //     Debug.Log("Map is ready! Spawning targets now.");
+    //     SpawnTargets(currentTargetIndex);
+    // }
+
+
+    public void SpawnTargets(int currentTargetIndex)
+    {
+        for (int i = 0; i <= currentTargetIndex; i++)
+        {
+            SpawnTargetOnMap(targets[i], targets[i].visited);
+        }
+    }
+
+    private void SpawnTargetOnMap(Target target, bool asDiscovered)
+    {
+        var latLng = Conversions.StringToLatLon(target.locationString);
+        Vector3 localPos = _map.MapInformation.ConvertLatLngToPosition(latLng);
+
+        var prefab = asDiscovered ? target.discoveredPrefab : target.undiscoveredPrefab;
+        var spawnScale = asDiscovered ? target.D_SpawnScale : target.UD_SpawnScale;
+
+        var instance = Instantiate(
+            prefab,
+            localPos,
+            Quaternion.identity,
+            _mapCore.UnityContext.MapRoot
+        );
+        instance.transform.localScale = Vector3.one * spawnScale;
+
+        target.currentInstance = instance;
+    }
+
+    public void HandlePlayerNearCurrentTarget(Vector2d playerPos)
     {
         if (currentTargetIndex < 0 || currentTargetIndex >= targets.Count || _map == null) return;
         Target t = targets[currentTargetIndex];
@@ -105,12 +164,12 @@ public class TargetManager : MonoBehaviour
         {
             // Spawn marker in AR
             Vector3 worldPos = _map.MapInformation.ConvertLatLngToPosition(targetLatLng);
-            GameObject instance = Instantiate(t.discoveredPrefab, worldPos, Quaternion.identity);
-            t.currentInstance = instance;
+            //GameObject instance = Instantiate(t.discoveredPrefab, worldPos, Quaternion.identity);
+            //t.currentInstance = instance;
             t.visited = true;
 
             // Advance to next target
-            currentTargetIndex++;
+            questManager.OnTargetReached();
         }
     }
 

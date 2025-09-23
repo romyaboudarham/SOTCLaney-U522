@@ -8,6 +8,9 @@ using UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets;
 
 public class NavBarUIManager : MonoBehaviour
 {
+    private QuestManager questManager;
+
+    public static NavBarUIManager Instance { get; private set; }
     [SerializeField]
     [Tooltip("The animator for the object creation menu.")]
     Animator m_ObjectMenuAnimator;
@@ -64,6 +67,19 @@ public class NavBarUIManager : MonoBehaviour
     }
 
     [SerializeField]
+    [Tooltip("Button that opens the map.")]
+    Button m_MapButton;
+
+    /// <summary>
+    /// Button that opens the map.
+    /// </summary>
+    public Button MapButton
+    {
+        get => m_MapButton;
+        set => m_MapButton = value;
+    }
+
+    [SerializeField]
     [Tooltip("Button that closes the object creation menu.")]
     Button m_CancelButton;
 
@@ -92,16 +108,26 @@ public class NavBarUIManager : MonoBehaviour
         m_CancelButton.onClick.RemoveListener(HideBackpack);
     }
 
+    private bool isMapBlinking;
+    private Image mapButtonImage;
+    private Color buttonOriginalColor;
+
     // Start is called before the first frame update
     void Start()
     {
-
+        questManager = FindObjectOfType<QuestManager>();
+        mapButtonImage = m_MapButton.GetComponent<Image>();
+        buttonOriginalColor = mapButtonImage.color;
     }
 
     // Update is called once per frame
     void Update()
     {
-
+        if (isMapBlinking)
+        {
+            float t = Mathf.PingPong(Time.time * 2f, 1f); // blink speed
+            mapButtonImage.color = Color.Lerp(buttonOriginalColor, Color.red, t);
+        }
     }
 
     public void OnMapOpen()
@@ -111,6 +137,11 @@ public class NavBarUIManager : MonoBehaviour
         //     instructionPanel.SetActive(false);
         // }
         CameraUIManager.Instance.ShowMap();
+        if (isMapBlinking)
+        {
+            StopMapBlinking();
+        }
+        questManager.HideAllQuestPanels();
     }
 
     public void OnBackpackClick()
@@ -141,7 +172,7 @@ public class NavBarUIManager : MonoBehaviour
         m_ObjectMenu.SetActive(false);
         m_ShowObjectMenu = false;
     }
-    
+
     /// <summary>
     /// Set the index of the object in the list on the ObjectSpawner to a specific value.
     /// This is effectively an override of the default behavior or randomly spawning an object.
@@ -166,5 +197,16 @@ public class NavBarUIManager : MonoBehaviour
         }
 
         //HideMenu();
+    }
+
+    public void MapNewQuest()
+    {
+        isMapBlinking = true;
+    }
+
+    public void StopMapBlinking()
+    {
+        isMapBlinking = false;
+        mapButtonImage.color = buttonOriginalColor;
     }
 }
