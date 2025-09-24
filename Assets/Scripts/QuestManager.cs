@@ -38,7 +38,7 @@ public class QuestManager : MonoBehaviour
     {
         targetManager = FindObjectOfType<TargetManager>();
         navBarUIManager = FindObjectOfType<NavBarUIManager>();
-        
+
         if (targetManager != null)
         {
             Debug.Log("TargetManager ready!");
@@ -54,7 +54,6 @@ public class QuestManager : MonoBehaviour
     private void ShowGreeting()
     {
         StartCoroutine(FadeInCanvas(greetingPanel.GetComponent<CanvasGroup>()));
-        HideAllQuestPanels();
     }
 
     public void OnBeginButtonClicked()
@@ -123,14 +122,13 @@ public class QuestManager : MonoBehaviour
 
     private IEnumerator FadeInCanvas(CanvasGroup canvas)
     {
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(1f);
+        canvas.gameObject.SetActive(true);
         while (canvas.alpha < 1f)
         {
             canvas.alpha += Time.deltaTime; // adjust speed if needed
             yield return null;
         }
-
-        canvas.gameObject.SetActive(true);
     }
 
     private IEnumerator FadeAwayCanvas(CanvasGroup canvas)

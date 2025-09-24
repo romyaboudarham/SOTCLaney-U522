@@ -24,19 +24,25 @@ public class TargetManager : MonoBehaviour
     double thresholdKm = 0.02; // 20 meters
 
     private QuestManager questManager;
+    private BootstrapLoader bootstrapLoader;
 
     private void Start()
     {
         questManager = FindObjectOfType<QuestManager>();
-        _mapCore = FindObjectOfType<MapboxMapBehaviour>();
+        bootstrapLoader = FindObjectOfType<BootstrapLoader>();
 
-        if (_mapCore == null)
-        {
-            Debug.LogError("MapboxMapBehaviour is not assigned!");
-            return;
-        }
+        // _mapCore = CameraUIManager.Instance.GetMapCore();
+        // _map = CameraUIManager.Instance.GetMap();
 
-        _map = _mapCore.MapboxMap;
+        // if (_mapCore == null)
+        // {
+        //     Debug.LogError("MapboxMapBehaviour is not assigned!");
+        //     return;
+        // }
+
+        // _map = _mapCore.MapboxMap;
+        _mapCore = bootstrapLoader.GetMapCore();
+        _map = bootstrapLoader.GetMap();
         if (_map == null)
         {
             Debug.LogError("MapboxMap is null! Cannot spawn targets.");
@@ -57,9 +63,9 @@ public class TargetManager : MonoBehaviour
         {
             debugTxt.text = $"Using {_locationProvider.GetType().Name} for GPS";
         }
-
         if (_locationProvider != null)
         {
+            Debug.Log("Subscribing to provider: " + _locationProvider);
             _locationProvider.OnLocationUpdated += HandleLocationUpdated;
         }
     }
@@ -78,7 +84,7 @@ public class TargetManager : MonoBehaviour
             location.LatitudeLongitude.Latitude,
             location.LatitudeLongitude.Longitude
         );
-
+        Debug.Log("Player location updated: " + playerPos);
         HandlePlayerNearCurrentTarget(playerPos);
     }
 

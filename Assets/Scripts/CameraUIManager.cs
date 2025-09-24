@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using Mapbox.BaseModule.Map;
+using Mapbox.Example.Scripts.Map;
 
 public class CameraUIManager : MonoBehaviour
 {
@@ -12,6 +14,7 @@ public class CameraUIManager : MonoBehaviour
     [Header("UI Roots")]
     [SerializeField] private GameObject arUI;
     [SerializeField] private GameObject mapUI;
+    [SerializeField] private GameObject mapTag;
 
     [Header("Loading Overlay")]
     [SerializeField] private CanvasGroup loadingCanvas; // assign in inspector
@@ -51,8 +54,11 @@ public class CameraUIManager : MonoBehaviour
             mapUI = GameObject.FindGameObjectWithTag("MapUI");
             if (mapUI == null) Debug.LogWarning("MapUI not found!");
 
+            mapTag = GameObject.FindGameObjectWithTag("Map");
+            if (mapTag == null) Debug.LogWarning("Map Tag not found!");
+
             // Begin waiting for Mapbox runtime objects
-            StartCoroutine(WaitForMapObjects());
+            //StartCoroutine(WaitForMapObjects());
         }
     }
 
@@ -79,12 +85,18 @@ public class CameraUIManager : MonoBehaviour
     public IEnumerator WaitForMapAndThenShowAR()
     {
         // Wait until map runtime objects exist
-        while (baseTiles == null || runtimeObjectsRoot == null)
-        {
-            baseTiles = GameObject.Find("BaseTiles");
-            runtimeObjectsRoot = GameObject.Find("RuntimeObjectsRoot");
-            yield return null;
-        }
+        // while (baseTiles == null || runtimeObjectsRoot == null)
+        // {
+        //     baseTiles = GameObject.Find("BaseTiles");
+        //     runtimeObjectsRoot = GameObject.Find("RuntimeObjectsRoot");
+        //     yield return null;
+        // }
+
+        // while (mapCore.MapboxMap == null)
+        // {
+        //     yield return null;
+        // }
+        return null;
 
         Debug.Log("Map objects ready, now switching to AR");
         ShowAR();
@@ -102,9 +114,33 @@ public class CameraUIManager : MonoBehaviour
 
         // Show Map UI immediately
         if (mapUI) mapUI.SetActive(true);
+        EnableAllMapChildren(mapTag);
 
         // Enable map runtime objects when ready
-        StartCoroutine(EnableMapObjects());
+        //StartCoroutine(EnableMapObjects());
+    }
+
+    private void EnableAllMapChildren(GameObject mapRoot)
+    {
+        if (mapRoot == null) return;
+
+        // Enable all top-level children of Map
+        foreach (Transform child in mapRoot.transform)
+        {
+            child.gameObject.SetActive(true);
+        }
+
+        // Enable all children of MapUtility
+        Transform mapUtility = mapRoot.transform.Find("MapUtility");
+        if (mapUtility != null)
+        {
+            foreach (Transform child in mapUtility)
+            {
+                child.gameObject.SetActive(true);
+            }
+        }
+
+        Debug.Log("All Map children re-enabled.");
     }
 
     private IEnumerator EnableMapObjects()
@@ -122,10 +158,12 @@ public class CameraUIManager : MonoBehaviour
     {
         Debug.Log("SHOW AR");
 
-        // Hide Map runtime objects + UI
-        if (baseTiles) baseTiles.SetActive(false);
-        if (runtimeObjectsRoot) runtimeObjectsRoot.SetActive(false);
+        // Hide Map runtime objects 
+        //if (baseTiles) baseTiles.SetActive(false);
+        // if (runtimeObjectsRoot) runtimeObjectsRoot.SetActive(false);
         if (mapUI) mapUI.SetActive(false);
+        DisableMapExceptLocationModule(mapTag);
+        // if (mapTag) mapTag.SetActive(false);
 
         // Show AR rig + UI
         if (arRig) arRig.SetActive(true);
@@ -134,9 +172,45 @@ public class CameraUIManager : MonoBehaviour
         // Fade out the loading overlay now that AR is ready
         if (loadingCanvas != null && loadingCanvas.gameObject.activeSelf)
             StartCoroutine(FadeAwayLoading());
-}
+    }
 
-private IEnumerator FadeAwayLoading()
+    private void DisableMapExceptLocationModule(GameObject mapRoot)
+    {
+        if (mapRoot == null) return;
+
+        // Find MapUtility and LocationModule
+        Transform mapUtility = mapRoot.transform.Find("MapUtility");
+        if (mapUtility == null)
+        {
+            Debug.LogError("MapUtility not found under Map root!");
+            return;
+        }
+
+        Transform locationProvider = mapUtility.Find("LocationModule");
+        if (locationProvider == null)
+        {
+            Debug.LogError("LocationModule not found under MapUtility!");
+            return;
+        }
+
+        // 1️⃣ Disable all top-level children of Map except MapUtility
+        foreach (Transform child in mapRoot.transform)
+        {
+            if (child != mapUtility)
+                child.gameObject.SetActive(false);
+        }
+
+        // 2️⃣ Disable all children of MapUtility except LocationProviderFactory
+        foreach (Transform child in mapUtility)
+        {
+            if (child != locationProvider)
+                child.gameObject.SetActive(false);
+        }
+
+        Debug.Log("Disabled all Map visuals except LocationProviderFactory.");
+    }
+
+    private IEnumerator FadeAwayLoading()
     {
         while (loadingCanvas.alpha > 0f)
         {
