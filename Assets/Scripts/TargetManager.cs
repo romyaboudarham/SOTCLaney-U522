@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Collections;
 using Mapbox.BaseModule.Data.Vector2d;   // For LatitudeLongitude
 using Mapbox.BaseModule.Map;
 using Mapbox.BaseModule.Utilities;
@@ -11,38 +10,41 @@ using TMPro;
 
 public class TargetManager : MonoBehaviour
 {
-    //[SerializeField] private MapboxMapBehaviour _mapCore;
-    private MapboxMapBehaviour _mapCore;
-    private MapboxMap _map;
+    [Serializable]
+    public class Target
+    {
+        public string targetName;          // For UI
+        public string locationString;      // "37.7749,-122.4194" format
+        public GameObject Prefab_Undiscovered;
+        public float SpawnScale_Undiscovered;
+        public GameObject Prefab_Completed;
+        public float SpawnScale_Completed;
+
+        [HideInInspector] public bool reached;      // Player arrived at location
+        [HideInInspector] public bool completed;    // Player did the action at location
+        [HideInInspector] public GameObject currentInstance; // instance on the map
+        [HideInInspector] public GameObject arInstance; // instance in AR
+    }
 
     [SerializeField] private List<Target> targets;
     public TMP_Text debugTxt;
 
-    private ILocationProvider  _locationProvider; // GPS
-
-    int currentTargetIndex = 0;
-    double thresholdKm = 0.02; // 20 meters
-
+    private MapboxMapBehaviour _mapCore;
+    private MapboxMap _map;
     private QuestManager questManager;
     private BootstrapLoader bootstrapLoader;
+    private ILocationProvider _locationProvider; // GPS
+
+    private int currentTargetIndex = 0;
+    private double thresholdKm = 0.01; // 10 meters
 
     private void Start()
     {
         questManager = FindObjectOfType<QuestManager>();
         bootstrapLoader = FindObjectOfType<BootstrapLoader>();
-
-        // _mapCore = CameraUIManager.Instance.GetMapCore();
-        // _map = CameraUIManager.Instance.GetMap();
-
-        // if (_mapCore == null)
-        // {
-        //     Debug.LogError("MapboxMapBehaviour is not assigned!");
-        //     return;
-        // }
-
-        // _map = _mapCore.MapboxMap;
         _mapCore = bootstrapLoader.GetMapCore();
         _map = bootstrapLoader.GetMap();
+
         if (_map == null)
         {
             Debug.LogError("MapboxMap is null! Cannot spawn targets.");
@@ -50,27 +52,35 @@ public class TargetManager : MonoBehaviour
         }
     }
 
-    void OnEnable()
+    private void OnEnable()
     {
-        // Grab the right provider (Editor vs Device chosen by Mapbox internally)
         _locationProvider = LocationProviderFactory.Instance.DefaultLocationProvider;
+    }
 
-        if (_locationProvider == null)
-        {
-            debugTxt.text = "No LocationProvider found!";
-        }
-        else
-        {
-            debugTxt.text = $"Using {_locationProvider.GetType().Name} for GPS";
-        }
+    public void EnableLocationUpdates()
+    {
         if (_locationProvider != null)
         {
-            Debug.Log("Subscribing to provider: " + _locationProvider);
+            Debug.Log("Enabling GPS updates");
             _locationProvider.OnLocationUpdated += HandleLocationUpdated;
         }
     }
 
-    void OnDisable()
+    public void DisableLocationUpdates()
+    {
+        if (_locationProvider != null)
+        {
+            Debug.Log("Disabling GPS updates");
+            _locationProvider.OnLocationUpdated -= HandleLocationUpdated;
+        }
+    }
+
+    private void OnDisable()
+    {
+        DisableLocationUpdates();
+    }
+
+    private void OnDestroy()
     {
         if (_locationProvider != null)
         {
@@ -84,53 +94,26 @@ public class TargetManager : MonoBehaviour
             location.LatitudeLongitude.Latitude,
             location.LatitudeLongitude.Longitude
         );
-        Debug.Log("Player location updated: " + playerPos);
-        HandlePlayerNearCurrentTarget(playerPos);
-    }
 
-    void OnDestroy()
-    {
-        if (_locationProvider != null)
-        {
-            _locationProvider.OnLocationUpdated -= HandleLocationUpdated;
-        }
+        HandlePlayerNearCurrentTarget(playerPos);
     }
 
     public void InitializeAndSpawn(int currentIndex)
     {
         currentTargetIndex = currentIndex;
-        Debug.Log("Map is ready! Spawning targets now.");
-        SpawnTargets(currentTargetIndex);
-        //StartCoroutine(WaitForMapReady());
-    }
-
-    // private IEnumerator WaitForMapReady()
-    // {
-    //     while (_map.Status < InitializationStatus.ReadyForUpdates)
-    //     {
-    //         yield return null; // wait for next frame
-    //     }
-
-    //     Debug.Log("Map is ready! Spawning targets now.");
-    //     SpawnTargets(currentTargetIndex);
-    // }
-
-
-    public void SpawnTargets(int currentTargetIndex)
-    {
         for (int i = 0; i <= currentTargetIndex; i++)
         {
-            SpawnTargetOnMap(targets[i], targets[i].visited);
+            SpawnTargetOnMap(targets[i]);
         }
     }
 
-    private void SpawnTargetOnMap(Target target, bool asDiscovered)
+    private void SpawnTargetOnMap(Target target)
     {
         var latLng = Conversions.StringToLatLon(target.locationString);
         Vector3 localPos = _map.MapInformation.ConvertLatLngToPosition(latLng);
 
-        var prefab = asDiscovered ? target.discoveredPrefab : target.undiscoveredPrefab;
-        var spawnScale = asDiscovered ? target.D_SpawnScale : target.UD_SpawnScale;
+        var prefab = target.completed ? target.Prefab_Completed : target.Prefab_Undiscovered;
+        var spawnScale = target.completed ? target.SpawnScale_Completed : target.SpawnScale_Undiscovered;
 
         var instance = Instantiate(
             prefab,
@@ -143,12 +126,36 @@ public class TargetManager : MonoBehaviour
         target.currentInstance = instance;
     }
 
+    // Called by QuestManager when we are in AR scene and new quest started
+    public void SpawnUnreachedTargetInAR(int currentTargetIndex)
+    {
+        var currTarget = targets[currentTargetIndex];
+
+        if (currTarget.reached) return; // return if already reached
+
+        var latLng = Conversions.StringToLatLon(currTarget.locationString);
+        Vector3 localPos = _map.MapInformation.ConvertLatLngToPosition(latLng);
+
+        var prefab = currTarget.Prefab_Undiscovered;
+        var spawnScale = 4f;
+
+        var instance = Instantiate(
+            prefab,
+            localPos,
+            Quaternion.identity,
+            _mapCore.UnityContext.MapRoot // TODO: spawn in AR root instead since Maproot is disabled in AR scene
+        );
+        instance.transform.localScale = Vector3.one * spawnScale;
+
+        currTarget.arInstance = instance;
+    }
+
     public void HandlePlayerNearCurrentTarget(Vector2d playerPos)
     {
         if (currentTargetIndex < 0 || currentTargetIndex >= targets.Count || _map == null) return;
-        Target t = targets[currentTargetIndex];
+        Target currentTarget = targets[currentTargetIndex];
 
-        var targetLatLng = Conversions.StringToLatLon(t.locationString);
+        var targetLatLng = Conversions.StringToLatLon(currentTarget.locationString);
         Vector2d targetPos = new Vector2d(targetLatLng.Latitude, targetLatLng.Longitude);
 
         double distanceToTarget = Distance(
@@ -156,64 +163,73 @@ public class TargetManager : MonoBehaviour
             targetPos.x, targetPos.y, 'K'
         );
 
-        // DEBUG LOGS START
-         debugTxt.text =
-            "Location: " +
+        // DEBUG
+        debugTxt.text =
+            "Location:" +
             "\nLat: " + playerPos.x +
-            "\nLon: " + playerPos.y;
+            "\nLon: " + playerPos.y +
+            "\n\nDistance: " + distanceToTarget;
 
-        debugTxt.text += "\n\nDistance: " + distanceToTarget;
-        // DEBUG LOGS END
-
-
-        if (distanceToTarget <= thresholdKm && !t.visited)
+        // Player is close enough
+        if (distanceToTarget <= thresholdKm && !currentTarget.reached)
         {
-            // Spawn marker in AR
-            Vector3 worldPos = _map.MapInformation.ConvertLatLngToPosition(targetLatLng);
-            //GameObject instance = Instantiate(t.discoveredPrefab, worldPos, Quaternion.identity);
-            //t.currentInstance = instance;
-            t.visited = true;
+            targets[currentTargetIndex].reached = true;
+            Debug.Log($"Quest step {currentTargetIndex} reached! Waiting for completion...");
 
-            // Advance to next target
+            // Notify QuestManager but do NOT auto-complete
             questManager.OnTargetReached();
         }
     }
 
-    // ** DISTANCE CALCULATIONS **
+    // Called by QuestManager when the player actually does the required action (e.g. open map, scan AR, etc.)
+    public void MarkCurrentTargetCompleted()
+    {
+        if (currentTargetIndex < 0 || currentTargetIndex >= targets.Count) return;
+        Target currentTarget = targets[currentTargetIndex];
 
-    //https://www.geodatasource.com/resources/tutorials/how-to-calculate-the-distance-between-2-locations-using-c/
+        if (!currentTarget.completed)
+        {
+            targets[currentTargetIndex].completed = true;
+            Debug.Log($"Quest step {currentTargetIndex} marked COMPLETED!");
+
+
+            // Advance QuestManager
+            questManager.OnTargetCompleted();
+        }
+    }
+
+    public void ClearAllTargets()
+    {
+        Debug.Log("Clearing all targets from map");
+        foreach (var target in targets)
+        {
+            if (target.currentInstance != null)
+            {
+                Destroy(target.currentInstance);
+                target.currentInstance = null;
+            }
+        }
+    }
+
+    // DISTANCE CALCULATIONS
     private double Distance(double lat1, double lon1, double lat2, double lon2, char unit)
     {
-        if ((lat1 == lat2) && (lon1 == lon2))
-        {
-            return 0;
-        }
-        else
-        {
-            double theta = lon1 - lon2;
-            double dist = Math.Sin(deg2rad(lat1)) * Math.Sin(deg2rad(lat2)) + Math.Cos(deg2rad(lat1)) * Math.Cos(deg2rad(lat2)) * Math.Cos(deg2rad(theta));
-            dist = Math.Acos(dist);
-            dist = rad2deg(dist);
-            dist = dist * 60 * 1.1515;
-            if (unit == 'K')
-            {
-                dist = dist * 1.609344;
-            }
-            else if (unit == 'N')
-            {
-                dist = dist * 0.8684;
-            }
-            return (dist);
-        }
+        if ((lat1 == lat2) && (lon1 == lon2)) return 0;
+
+        double theta = lon1 - lon2;
+        double dist = Math.Sin(deg2rad(lat1)) * Math.Sin(deg2rad(lat2)) +
+                      Math.Cos(deg2rad(lat1)) * Math.Cos(deg2rad(lat2)) * Math.Cos(deg2rad(theta));
+
+        dist = Math.Acos(dist);
+        dist = rad2deg(dist);
+        dist = dist * 60 * 1.1515;
+
+        if (unit == 'K') dist = dist * 1.609344;
+        else if (unit == 'N') dist = dist * 0.8684;
+
+        return dist;
     }
 
-    private double deg2rad(double deg)
-    {
-        return (deg * Math.PI / 180.0);
-    }
-
-    private double rad2deg(double rad)
-    {
-        return (rad / Math.PI * 180.0);
-    }
+    private double deg2rad(double deg) => (deg * Math.PI / 180.0);
+    private double rad2deg(double rad) => (rad / Math.PI * 180.0);
 }

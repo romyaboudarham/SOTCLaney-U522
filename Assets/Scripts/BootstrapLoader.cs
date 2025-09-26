@@ -56,20 +56,6 @@ public class BootstrapLoader : MonoBehaviour
         };
     }
 
-    // private IEnumerator WaitUntilReady(MapboxMap map)
-    // {
-    //     while (map.Status < InitializationStatus.ReadyForUpdates)
-    //         yield return null;
-
-    //     Debug.Log("Map is fully ready for updates!");
-
-    //     SceneManager.LoadSceneAsync("MainARScene", LoadSceneMode.Additive).completed += (op) =>
-    //     {
-    //         Debug.Log("MainARScene loaded.");
-    //         CameraUIManager.Instance.ShowAR();
-    //     };
-    // }
-
     private IEnumerator WaitUntilReady(MapboxMap map)
     {
         while (map.Status < InitializationStatus.ReadyForUpdates)

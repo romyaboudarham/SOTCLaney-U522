@@ -5,10 +5,24 @@ using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets;
+using UnityEngine.XR.ARFoundation;
 
 public class NavBarUIManager : MonoBehaviour
 {
+    [SerializeField] private ARPlaneManager aRPlaneManager;
+
     private QuestManager questManager;
+    private bool isMapOpen = false;
+
+    private bool isMapBlinking;
+    private Image mapButtonImage;
+    private Color buttonOriginalColor;
+
+    private bool isBackpackBlinking;
+    private Image backpackButtonImage;
+
+    bool initBackpackOpen = true;
+
 
     public static NavBarUIManager Instance { get; private set; }
     [SerializeField]
@@ -94,6 +108,7 @@ public class NavBarUIManager : MonoBehaviour
 
     void OnEnable()
     {
+        isMapOpen = false;
         m_BackpackButton.onClick.AddListener(ShowBackpack);
         m_CancelButton.onClick.AddListener(HideBackpack);
     }
@@ -108,15 +123,12 @@ public class NavBarUIManager : MonoBehaviour
         m_CancelButton.onClick.RemoveListener(HideBackpack);
     }
 
-    private bool isMapBlinking;
-    private Image mapButtonImage;
-    private Color buttonOriginalColor;
-
     // Start is called before the first frame update
     void Start()
     {
         questManager = FindObjectOfType<QuestManager>();
         mapButtonImage = m_MapButton.GetComponent<Image>();
+        backpackButtonImage = m_BackpackButton.GetComponent<Image>();
         buttonOriginalColor = mapButtonImage.color;
     }
 
@@ -128,6 +140,11 @@ public class NavBarUIManager : MonoBehaviour
             float t = Mathf.PingPong(Time.time * 2f, 1f); // blink speed
             mapButtonImage.color = Color.Lerp(buttonOriginalColor, Color.red, t);
         }
+        if (isBackpackBlinking)
+        {
+            float t = Mathf.PingPong(Time.time * 2f, 1f); // blink speed
+            backpackButtonImage.color = Color.Lerp(buttonOriginalColor, Color.red, t);
+        }
     }
 
     public void OnMapOpen()
@@ -136,25 +153,37 @@ public class NavBarUIManager : MonoBehaviour
         // {
         //     instructionPanel.SetActive(false);
         // }
+        questManager.SpawnQuestsOnMap();
         CameraUIManager.Instance.ShowMap();
         if (isMapBlinking)
         {
             StopMapBlinking();
         }
+
+        if (initBackpackOpen)
+        {
+            initBackpackOpen = false;
+            placeObjectOnboarding();
+        }
+
         questManager.HideAllQuestPanels();
+    }
+
+    private void placeObjectOnboarding()
+    {
+        Debug.Log("Showing onboarding panel");
+        //instructionPanel.SetActive(true);
     }
 
     public void OnBackpackClick()
     {
-        if (instructionPanel.activeSelf) // close instruction panel on map load
-        {
-            instructionPanel.SetActive(false);
-        }
         ShowBackpack();
     }
 
     void ShowBackpack()
     {
+        questManager.HideLocationReachedPanel();
+        aRPlaneManager.enabled = true;
         m_ShowObjectMenu = true;
         m_ObjectMenu.SetActive(true);
         if (!m_ObjectMenuAnimator.GetBool("Show"))
@@ -168,6 +197,11 @@ public class NavBarUIManager : MonoBehaviour
     /// </summary>
     public void HideBackpack()
     {
+        if (isBackpackBlinking)
+        {
+            StopBackpackBlinking();
+           // questManager.FadeAwayCanvas();
+        }
         m_ObjectMenuAnimator.SetBool("Show", false);
         m_ObjectMenu.SetActive(false);
         m_ShowObjectMenu = false;
@@ -204,9 +238,25 @@ public class NavBarUIManager : MonoBehaviour
         isMapBlinking = true;
     }
 
-    public void StopMapBlinking()
+    public void BackpackNewItem()
+    {
+        isBackpackBlinking = true;
+    }
+
+    private void StopMapBlinking()
     {
         isMapBlinking = false;
         mapButtonImage.color = buttonOriginalColor;
+    }
+
+    private void StopBackpackBlinking()
+    {
+        isBackpackBlinking = false;
+        backpackButtonImage.color = buttonOriginalColor;
+    }
+
+    public bool IsMapOpen()
+    {
+        return isMapOpen;
     }
 }

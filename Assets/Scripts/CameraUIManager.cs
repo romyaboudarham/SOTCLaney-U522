@@ -19,10 +19,6 @@ public class CameraUIManager : MonoBehaviour
     [Header("Loading Overlay")]
     [SerializeField] private CanvasGroup loadingCanvas; // assign in inspector
 
-    // Runtime map objects (created by Mapbox at runtime)
-    private GameObject baseTiles;
-    private GameObject runtimeObjectsRoot;
-
     private void Awake()
     {
         if (Instance == null)
@@ -56,58 +52,14 @@ public class CameraUIManager : MonoBehaviour
 
             mapTag = GameObject.FindGameObjectWithTag("Map");
             if (mapTag == null) Debug.LogWarning("Map Tag not found!");
-
-            // Begin waiting for Mapbox runtime objects
-            //StartCoroutine(WaitForMapObjects());
         }
-    }
-
-    private IEnumerator WaitForMapObjects()
-    {
-        float timeout = 10f;
-        float timer = 0f;
-
-        while ((baseTiles == null || runtimeObjectsRoot == null) && timer < timeout)
-        {
-            baseTiles = GameObject.Find("BaseTiles");
-            runtimeObjectsRoot = GameObject.Find("RuntimeObjectsRoot");
-
-            timer += Time.deltaTime;
-            yield return null;
-        }
-
-        if (baseTiles && runtimeObjectsRoot)
-            Debug.Log("BaseTiles and RuntimeObjectsRoot found!");
-        else
-            Debug.LogWarning("Map objects not found within timeout.");
-    }
-
-    public IEnumerator WaitForMapAndThenShowAR()
-    {
-        // Wait until map runtime objects exist
-        // while (baseTiles == null || runtimeObjectsRoot == null)
-        // {
-        //     baseTiles = GameObject.Find("BaseTiles");
-        //     runtimeObjectsRoot = GameObject.Find("RuntimeObjectsRoot");
-        //     yield return null;
-        // }
-
-        // while (mapCore.MapboxMap == null)
-        // {
-        //     yield return null;
-        // }
-        return null;
-
-        Debug.Log("Map objects ready, now switching to AR");
-        ShowAR();
-        SceneManager.LoadSceneAsync("MainARScene", LoadSceneMode.Additive);
     }
 
     // Show map scene content
     public void ShowMap()
     {
-        Debug.Log("SHOW MAP");
-
+        //Debug.Log("SHOW MAP");
+        MapManager.Instance.IsMapOpen = true;
         // Hide AR rig/UI
         if (arRig) arRig.SetActive(false);
         if (arUI) arUI.SetActive(false);
@@ -115,9 +67,6 @@ public class CameraUIManager : MonoBehaviour
         // Show Map UI immediately
         if (mapUI) mapUI.SetActive(true);
         EnableAllMapChildren(mapTag);
-
-        // Enable map runtime objects when ready
-        //StartCoroutine(EnableMapObjects());
     }
 
     private void EnableAllMapChildren(GameObject mapRoot)
@@ -143,24 +92,12 @@ public class CameraUIManager : MonoBehaviour
         Debug.Log("All Map children re-enabled.");
     }
 
-    private IEnumerator EnableMapObjects()
-    {
-        // Wait until map objects exist
-        while (baseTiles == null || runtimeObjectsRoot == null)
-            yield return null;
-
-        baseTiles.SetActive(true);
-        runtimeObjectsRoot.SetActive(true);
-    }
-
     // Show AR scene content
     public void ShowAR()
     {
-        Debug.Log("SHOW AR");
-
+        //Debug.Log("SHOW AR");
+        MapManager.Instance.IsMapOpen = false;
         // Hide Map runtime objects 
-        //if (baseTiles) baseTiles.SetActive(false);
-        // if (runtimeObjectsRoot) runtimeObjectsRoot.SetActive(false);
         if (mapUI) mapUI.SetActive(false);
         DisableMapExceptLocationModule(mapTag);
         // if (mapTag) mapTag.SetActive(false);
@@ -193,21 +130,21 @@ public class CameraUIManager : MonoBehaviour
             return;
         }
 
-        // 1️⃣ Disable all top-level children of Map except MapUtility
+        // 1. Disable all top-level children of Map except MapUtility
         foreach (Transform child in mapRoot.transform)
         {
             if (child != mapUtility)
                 child.gameObject.SetActive(false);
         }
 
-        // 2️⃣ Disable all children of MapUtility except LocationProviderFactory
+        // 2️. Disable all children of MapUtility except LocationProviderFactory
         foreach (Transform child in mapUtility)
         {
             if (child != locationProvider)
                 child.gameObject.SetActive(false);
         }
 
-        Debug.Log("Disabled all Map visuals except LocationProviderFactory.");
+        //Debug.Log("Disabled all Map visuals except LocationProviderFactory.");
     }
 
     private IEnumerator FadeAwayLoading()
