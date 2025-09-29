@@ -11,6 +11,8 @@ public class CameraUIManager : MonoBehaviour
     [Header("Scene Cameras / AR")]
     [SerializeField] private GameObject arRig; // contains ARCamera
 
+    [SerializeField] private GameObject arTargets; // contains ARCamer
+
     [Header("UI Roots")]
     [SerializeField] private GameObject arUI;
     [SerializeField] private GameObject mapUI;
@@ -41,9 +43,11 @@ public class CameraUIManager : MonoBehaviour
         {
             arRig = GameObject.FindGameObjectWithTag("ARRig");
             arUI = GameObject.FindGameObjectWithTag("ARUI");
+            arTargets = GameObject.FindGameObjectWithTag("ARTargets");
 
             if (arRig == null) Debug.LogWarning("ARRig not found!");
             if (arUI == null) Debug.LogWarning("ARUI not found!");
+            if (arTargets == null) Debug.LogWarning("ARTargets");
         }
         else if (scene.name == "MapScene")
         {
@@ -63,6 +67,7 @@ public class CameraUIManager : MonoBehaviour
         // Hide AR rig/UI
         if (arRig) arRig.SetActive(false);
         if (arUI) arUI.SetActive(false);
+        if (arTargets) arTargets.SetActive(false);
 
         // Show Map UI immediately
         if (mapUI) mapUI.SetActive(true);
@@ -105,6 +110,7 @@ public class CameraUIManager : MonoBehaviour
         // Show AR rig + UI
         if (arRig) arRig.SetActive(true);
         if (arUI) arUI.SetActive(true);
+        if (arTargets) arTargets.SetActive(true);
 
         // Fade out the loading overlay now that AR is ready
         if (loadingCanvas != null && loadingCanvas.gameObject.activeSelf)

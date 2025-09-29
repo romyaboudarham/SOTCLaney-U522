@@ -28,6 +28,7 @@ public class QuestManager : MonoBehaviour
     private TargetManager targetManager;
     private NavBarUIManager navBarUIManager;
     private MapManager mapManager;
+    private MultiTimelinePlayerUI timelineManager;
 
     public static QuestManager Instance { get; private set; }
 
@@ -46,6 +47,7 @@ public class QuestManager : MonoBehaviour
         targetManager = FindObjectOfType<TargetManager>();
         navBarUIManager = FindObjectOfType<NavBarUIManager>();
         mapManager = FindObjectOfType<MapManager>();
+        timelineManager = FindObjectOfType<MultiTimelinePlayerUI>();
 
         MapManager.Instance.questManager = this;
 
@@ -79,13 +81,14 @@ public class QuestManager : MonoBehaviour
 
     public void SpawnUnreachedTargetInAR()
     {
-        targetManager.SpawnUnreachedTargetInAR(currentStepIndex);
+        //targetManager.SpawnUnreachedTargetInAR(currentStepIndex);
     }
 
     #region Greeting
     private void ShowGreeting()
     {
         StartCoroutine(FadeInCanvas(greetingPanel.GetComponent<CanvasGroup>()));
+        timelineManager.PlayTimeline(0); // plays first timeline
     }
 
     public void OnBeginButtonClicked()

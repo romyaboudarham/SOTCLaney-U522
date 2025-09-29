@@ -9,6 +9,8 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
     /// </summary>
     public class ObjectSpawner : MonoBehaviour
     {
+        private Dictionary<GameObject, GameObject> spawnedObjects = new Dictionary<GameObject, GameObject>();
+
         [SerializeField]
         [Tooltip("The camera that objects will face when spawned. If not set, defaults to the main camera.")]
         Camera m_CameraToFace;
@@ -192,20 +194,17 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
         /// <seealso cref="objectSpawned"/>
         public bool TrySpawnObject(Vector3 spawnPoint, Vector3 spawnNormal)
         {
-            if (m_OnlySpawnInView)
+            var objectIndex = isSpawnOptionRandomized ? Random.Range(0, m_ObjectPrefabs.Count) : m_SpawnOptionIndex;
+            var prefab = m_ObjectPrefabs[objectIndex];
+
+            if (spawnedObjects.ContainsKey(prefab) && spawnedObjects[prefab] != null)
             {
-                var inViewMin = m_ViewportPeriphery;
-                var inViewMax = 1f - m_ViewportPeriphery;
-                var pointInViewportSpace = cameraToFace.WorldToViewportPoint(spawnPoint);
-                if (pointInViewportSpace.z < 0f || pointInViewportSpace.x > inViewMax || pointInViewportSpace.x < inViewMin ||
-                    pointInViewportSpace.y > inViewMax || pointInViewportSpace.y < inViewMin)
-                {
-                    return false;
-                }
+                Debug.Log($"Prefab {prefab.name} already spawned. Skipping.");
+                return false;
             }
 
-            var objectIndex = isSpawnOptionRandomized ? Random.Range(0, m_ObjectPrefabs.Count) : m_SpawnOptionIndex;
-            var newObject = Instantiate(m_ObjectPrefabs[objectIndex]);
+            // Otherwise spawn
+            var newObject = Instantiate(prefab);
             if (m_SpawnAsChildren)
                 newObject.transform.parent = transform;
 
@@ -229,6 +228,9 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
                 visualizationTrans.position = spawnPoint;
                 visualizationTrans.rotation = newObject.transform.rotation;
             }
+
+            // ✅ Track it
+            spawnedObjects[prefab] = newObject;
 
             objectSpawned?.Invoke(newObject);
             return true;

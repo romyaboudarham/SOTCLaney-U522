@@ -10,6 +10,7 @@ TagManager:
   - ARUI
   - ARRig
   - Map
+  - ARTargets
   layers:
   - Default
   - TransparentFX

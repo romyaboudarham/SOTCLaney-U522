@@ -7,6 +7,7 @@ using Mapbox.BaseModule.Utilities;
 using Mapbox.Example.Scripts.Map;
 using Mapbox.LocationModule; // GPS
 using TMPro;
+using UnityEngine.XR.ARFoundation;
 
 public class TargetManager : MonoBehaviour
 {
@@ -26,7 +27,9 @@ public class TargetManager : MonoBehaviour
         [HideInInspector] public GameObject arInstance; // instance in AR
     }
 
+    [SerializeField] Camera arCamera;
     [SerializeField] private List<Target> targets;
+    [SerializeField] private Transform arTargetsRoot;
     public TMP_Text debugTxt;
 
     private MapboxMapBehaviour _mapCore;
@@ -37,6 +40,7 @@ public class TargetManager : MonoBehaviour
 
     private int currentTargetIndex = 0;
     private double thresholdKm = 0.01; // 10 meters
+    private double thresholdSpawnKm = 0.02; // 10 meters
 
     private void Start()
     {
@@ -125,29 +129,69 @@ public class TargetManager : MonoBehaviour
 
         target.currentInstance = instance;
     }
+    public static LatitudeLongitude Vector2dToLatLon(Vector2d v)
+    {
+        if (v == null)
+        {
+            throw new ArgumentNullException(nameof(v), "Vector2d input cannot be null");
+        }
+
+        double latitude = v.x;
+        double longitude = v.y;
+
+        return new LatitudeLongitude(latitude, longitude);
+    }
 
     // Called by QuestManager when we are in AR scene and new quest started
-    public void SpawnUnreachedTargetInAR(int currentTargetIndex)
+    public void SpawnUnreachedTargetInAR(Target currentTarget, LatitudeLongitude targetLatLng, Vector2d playerVec)
     {
-        var currTarget = targets[currentTargetIndex];
+        var playerLatLng = Vector2dToLatLon(playerVec);
+        var playerPos = _map.MapInformation.ConvertLatLngToPosition(playerLatLng);
+        var targetPos = _map.MapInformation.ConvertLatLngToPosition(targetLatLng);
 
-        if (currTarget.reached) return; // return if already reached
-
-        var latLng = Conversions.StringToLatLon(currTarget.locationString);
-        Vector3 localPos = _map.MapInformation.ConvertLatLngToPosition(latLng);
-
-        var prefab = currTarget.Prefab_Undiscovered;
+        Vector3 relativePos = targetPos - playerPos;
+        var prefab = currentTarget.Prefab_Undiscovered;
         var spawnScale = 4f;
 
-        var instance = Instantiate(
-            prefab,
-            localPos,
-            Quaternion.identity,
-            _mapCore.UnityContext.MapRoot // TODO: spawn in AR root instead since Maproot is disabled in AR scene
-        );
-        instance.transform.localScale = Vector3.one * spawnScale;
+        currentTarget.arInstance = SpawnAtGeoPosition(prefab, relativePos, spawnScale);
 
-        currTarget.arInstance = instance;
+        // var instance = Instantiate(
+        //     prefab,
+        //     localPos,
+        //     Quaternion.identity,
+        //     arTargetsRoot
+        // );
+        // instance.transform.localScale = Vector3.one * spawnScale;
+
+        // currTarget.arInstance = instance;
+
+    }
+
+     public GameObject SpawnAtGeoPosition(GameObject prefab, Vector3 relativePos, float scale = 1f)
+    {
+        // Calculate where in AR space the object should go
+        Vector3 worldPos = arCamera.transform.position + relativePos;
+
+        Pose pose = new Pose(worldPos, Quaternion.identity);
+
+        GameObject anchorObject = new GameObject("ARAnchor");
+        anchorObject.transform.SetParent(arTargetsRoot, false); // parent under ARRoot
+        anchorObject.transform.position = pose.position;
+        anchorObject.transform.rotation = pose.rotation;
+
+        ARAnchor anchor = anchorObject.AddComponent<ARAnchor>();
+
+        if (anchor == null)
+        {
+            Debug.LogWarning("Could not create anchor. Falling back to plain spawn.");
+            return Instantiate(prefab, worldPos, Quaternion.identity, arTargetsRoot);
+        }
+
+        // Instantiate prefab as child of the anchor
+        GameObject instance = Instantiate(prefab, pose.position, pose.rotation, anchor.transform);
+        instance.transform.localScale = Vector3.one * scale;
+
+        return instance;
     }
 
     public void HandlePlayerNearCurrentTarget(Vector2d playerPos)
@@ -178,6 +222,13 @@ public class TargetManager : MonoBehaviour
 
             // Notify QuestManager but do NOT auto-complete
             questManager.OnTargetReached();
+        }
+
+        // check for AR Target Spawn
+        if (distanceToTarget <= thresholdSpawnKm && !currentTarget.reached && currentTarget.arInstance == null)
+        {
+            Debug.Log($"Spawning AR target {currentTargetIndex}");
+            SpawnUnreachedTargetInAR(currentTarget, targetLatLng, playerPos);
         }
     }
 
@@ -233,3 +284,6 @@ public class TargetManager : MonoBehaviour
     private double deg2rad(double deg) => (deg * Math.PI / 180.0);
     private double rad2deg(double rad) => (rad / Math.PI * 180.0);
 }
+
+
+      

@@ -67,6 +67,17 @@ public class NavBarUIManager : MonoBehaviour
         set => m_ObjectSpawner = value;
     }
 
+    /// <summary>
+    /// Clear all created objects in the scene.
+    /// </summary>
+    public void ClearAllObjects()
+    {
+        foreach (Transform child in m_ObjectSpawner.transform)
+        {
+            Destroy(child.gameObject);
+        }
+    }
+
     [SerializeField]
     [Tooltip("Button that opens the create menu.")]
     Button m_BackpackButton;

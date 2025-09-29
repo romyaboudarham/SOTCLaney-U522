@@ -3860,7 +3860,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7512784582823842728, guid: 5cfb21e958bce467e966040b1be49240, type: 3}
       propertyPath: _latitudeLongitude
-      value: 37.79707071847145, -122.26337769560905
+      value: 37.796980894981225, -122.26339340991308
       objectReference: {fileID: 0}
     - target: {fileID: 7512784582823842730, guid: 5cfb21e958bce467e966040b1be49240, type: 3}
       propertyPath: _dontDestroyOnLoad
