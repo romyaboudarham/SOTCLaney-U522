@@ -88,7 +88,7 @@ public class QuestManager : MonoBehaviour
     private void ShowGreeting()
     {
         StartCoroutine(FadeInCanvas(greetingPanel.GetComponent<CanvasGroup>()));
-        timelineManager.PlayTimeline(0); // plays first timeline
+        //timelineManager.PlayTimeline(0); // plays first timeline
     }
 
     public void OnBeginButtonClicked()
@@ -123,6 +123,8 @@ public class QuestManager : MonoBehaviour
     private void StartNextQuestStep()
     {
         currentStepIndex++;
+
+        targetManager.SpawnTestInFront(questSteps[currentStepIndex].prefab);
 
         // TODO: troubleshoot this
         //SpawnUnreachedTargetInAR();

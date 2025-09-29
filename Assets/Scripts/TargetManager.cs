@@ -113,18 +113,46 @@ public class TargetManager : MonoBehaviour
 
     private void SpawnTargetOnMap(Target target)
     {
+        if (target == null)
+        {
+            Debug.LogError("SpawnTargetOnMap called with null target");
+            return;
+        }
+
+        if (_map == null || _mapCore == null)
+        {
+            Debug.LogWarning("Map not ready in SpawnTargetOnMap. Skipping spawn for target: " + target.targetName);
+            return;
+        }
+
+        if (_map.Status < InitializationStatus.ReadyForUpdates)
+        {
+            Debug.LogWarning("Map status not ReadyForUpdates. Skipping spawn for target: " + target.targetName);
+            return;
+        }
+
         var latLng = Conversions.StringToLatLon(target.locationString);
         Vector3 localPos = _map.MapInformation.ConvertLatLngToPosition(latLng);
 
         var prefab = target.completed ? target.Prefab_Completed : target.Prefab_Undiscovered;
+        if (prefab == null)
+        {
+            Debug.LogError($"Prefab missing for target '{target.targetName}'. Completed={target.completed}. Assign in inspector.");
+            return;
+        }
+
         var spawnScale = target.completed ? target.SpawnScale_Completed : target.SpawnScale_Undiscovered;
 
-        var instance = Instantiate(
-            prefab,
-            localPos,
-            Quaternion.identity,
-            _mapCore.UnityContext.MapRoot
-        );
+        Transform parent = _mapCore.UnityContext != null ? _mapCore.UnityContext.MapRoot : null;
+        if (parent == null)
+        {
+            Debug.LogWarning("MapRoot is null. Spawning without parent for target: " + target.targetName);
+        }
+
+        var instance = parent != null
+            ? Instantiate(prefab, localPos, Quaternion.identity, parent)
+            : Instantiate(prefab, localPos, Quaternion.identity);
+
         instance.transform.localScale = Vector3.one * spawnScale;
 
         target.currentInstance = instance;
@@ -140,6 +168,14 @@ public class TargetManager : MonoBehaviour
         double longitude = v.y;
 
         return new LatitudeLongitude(latitude, longitude);
+    }
+
+    public GameObject SpawnTestInFront(GameObject prefab, float meters = 3f)
+    {
+        var fwd = arCamera.transform.forward;
+        var worldPos = arCamera.transform.position + fwd.normalized * meters;
+        var pose = new Pose(worldPos, Quaternion.LookRotation(fwd));
+        return Instantiate(prefab, pose.position, pose.rotation, arTargetsRoot);
     }
 
     // Called by QuestManager when we are in AR scene and new quest started

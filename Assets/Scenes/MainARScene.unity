@@ -148,36 +148,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 20386491}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 354c8f3d630920047ae9a5ed135c87b9, type: 3}
+  m_Script: {fileID: 11500000, guid: 59f33b59940bf4b43af57d9b3255dacb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   arCamera: {fileID: 1696116964}
   targets:
-  - targetName: TestHome_1
-    locationString: '37.845683, -122.266805  '
+  - targetName: SFTEST_1
+    locationString: 37.768069680941046, -122.3990597075495
     Prefab_Undiscovered: {fileID: 5375371263868219143, guid: 4f4e53ab6aaf3d740a639d4c4bde8c3f, type: 3}
     SpawnScale_Undiscovered: 7
-    Prefab_Completed: {fileID: 5713044448128491963, guid: aecaabc3683c1fe489d60bf15949bd6b, type: 3}
-    SpawnScale_Completed: 200
-    reached: 0
-    completed: 0
-    currentInstance: {fileID: 0}
-    arInstance: {fileID: 0}
-  - targetName: TestHome_2
-    locationString: 37.84586916105076, -122.26684495123735
-    Prefab_Undiscovered: {fileID: 5375371263868219143, guid: 4f4e53ab6aaf3d740a639d4c4bde8c3f, type: 3}
-    SpawnScale_Undiscovered: 7
-    Prefab_Completed: {fileID: 5713044448128491963, guid: aecaabc3683c1fe489d60bf15949bd6b, type: 3}
-    SpawnScale_Completed: 200
-    reached: 0
-    completed: 0
-    currentInstance: {fileID: 0}
-    arInstance: {fileID: 0}
-  - targetName: Laney_1
-    locationString: 37.796861, -122.263306
-    Prefab_Undiscovered: {fileID: 5375371263868219143, guid: 4f4e53ab6aaf3d740a639d4c4bde8c3f, type: 3}
-    SpawnScale_Undiscovered: 7
-    Prefab_Completed: {fileID: 5713044448128491963, guid: aecaabc3683c1fe489d60bf15949bd6b, type: 3}
+    Prefab_Completed: {fileID: 5771266494768688364, guid: b1f54517fc3bbee4e865fcfbdb6f6e22, type: 3}
     SpawnScale_Completed: 200
     reached: 0
     completed: 0
@@ -2487,7 +2467,7 @@ RectTransform:
   m_Father: {fileID: 1877736093}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -6908,7 +6888,7 @@ RectTransform:
   m_Father: {fileID: 431850005}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -9750,7 +9730,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1385992370
 RectTransform:
   m_ObjectHideFlags: 0
