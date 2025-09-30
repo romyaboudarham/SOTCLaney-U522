@@ -49,7 +49,10 @@ public class QuestManager : MonoBehaviour
         mapManager = FindObjectOfType<MapManager>();
         timelineManager = FindObjectOfType<MultiTimelinePlayerUI>();
 
-        MapManager.Instance.questManager = this;
+        if (MapManager.Instance != null)
+        {
+           MapManager.Instance.questManager = this; 
+        }
 
         if (targetManager != null)
         {
@@ -88,7 +91,6 @@ public class QuestManager : MonoBehaviour
     private void ShowGreeting()
     {
         StartCoroutine(FadeInCanvas(greetingPanel.GetComponent<CanvasGroup>()));
-        //timelineManager.PlayTimeline(0); // plays first timeline
     }
 
     public void OnBeginButtonClicked()
@@ -124,8 +126,7 @@ public class QuestManager : MonoBehaviour
     {
         currentStepIndex++;
 
-        // TODO: troubleshoot this
-        //SpawnUnreachedTargetInAR();
+        timelineManager.SetTimeline(currentStepIndex); // sets player to first timeline
 
         if (currentStepIndex >= questSteps.Count)
         {

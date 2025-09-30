@@ -33,9 +33,10 @@ public class MultiTimelinePlayerUI : MonoBehaviour
         }
     }
 
-    public void PlayTimeline(int index)
+    public void SetTimeline(int index)
     {
         if (index < 0 || index >= timelines.Count) return;
+        Debug.Log("Switching to timeline index: " + index);
 
         // stop old timeline
         var old = GetActiveTimeline();
@@ -44,8 +45,6 @@ public class MultiTimelinePlayerUI : MonoBehaviour
         activeIndex = index;
         isPlaying = false;
         progressSlider.value = 0;
-
-        TogglePlayPause(); // auto-play
     }
 
     void TogglePlayPause()
@@ -55,11 +54,13 @@ public class MultiTimelinePlayerUI : MonoBehaviour
 
         if (!isPlaying)
         {
+            Debug.Log("Playing timeline: " + active.name);
             active.Play();
             isPlaying = true;
         }
         else
         {
+            Debug.Log("Pausing timeline: " + active.name);
             active.Pause();
             isPlaying = false;
         }

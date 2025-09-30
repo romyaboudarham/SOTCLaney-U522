@@ -165,7 +165,10 @@ public class NavBarUIManager : MonoBehaviour
         //     instructionPanel.SetActive(false);
         // }
         questManager.SpawnQuestsOnMap();
-        CameraUIManager.Instance.ShowMap();
+        if (CameraUIManager.Instance != null)
+        {
+            CameraUIManager.Instance.ShowMap();
+        }
         if (isMapBlinking)
         {
             StopMapBlinking();

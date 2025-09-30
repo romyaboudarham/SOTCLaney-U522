@@ -53,21 +53,27 @@ public class TargetManager : MonoBehaviour
         questManager = FindObjectOfType<QuestManager>();
         mapManager = FindObjectOfType<MapManager>();
         bootstrapLoader = FindObjectOfType<BootstrapLoader>();
-        _mapCore = bootstrapLoader.GetMapCore();
-        _map = bootstrapLoader.GetMap();
 
-        MapManager.Instance.targetManager = this;
+        if (bootstrapLoader != null && mapManager != null)
+        {
+            _mapCore = bootstrapLoader.GetMapCore();
+            _map = bootstrapLoader.GetMap();
+            MapManager.Instance.targetManager = this;
+        }
 
         if (_map == null)
         {
-            Debug.LogError("MapboxMap is null! Cannot spawn targets.");
+            Debug.Log("MapboxMap is null! Cannot spawn targets.");
             return;
         }
     }
 
     private void OnEnable()
     {
-        _locationProvider = LocationProviderFactory.Instance.DefaultLocationProvider;
+        if (bootstrapLoader != null && _mapCore == null)
+        {
+            _locationProvider = LocationProviderFactory.Instance.DefaultLocationProvider;
+        }
     }
 
     public void EnableLocationUpdates()
