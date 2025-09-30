@@ -9,18 +9,17 @@ public class QuestManager : MonoBehaviour
     public class QuestStep
     {
         public string questName;
-        public GameObject panel;          // The panel for this target (before reaching)
-        public GameObject reachedPanel;   // The panel to show when target is reached
-        public GameObject prefab;         // Prefab to spawn on the map
+        public GameObject prefab;
 
         [HideInInspector] public bool isReached;
         [HideInInspector] public bool isCompleted;
     }
 
     [SerializeField] private GameObject timelinePlayerUI;
-    [SerializeField] private GameObject completedPanel;
+    [SerializeField] private GameObject newQuestPanel;
+    [SerializeField] private GameObject quizPanel;
     [SerializeField] private GameObject greetingPanel;
-    [SerializeField] private GameObject locationReachedPanel;
+    [SerializeField] private GameObject artifactCollectedPanel;
     [SerializeField] private List<QuestStep> questSteps;
     [SerializeField] private List<GameObject> backpackItems;
 
@@ -30,6 +29,7 @@ public class QuestManager : MonoBehaviour
     private NavBarUIManager navBarUIManager;
     private MapManager mapManager;
     private TimelinePlayerManager timelinePlayerManager;
+    private QuizManager quizManager;
 
     public static QuestManager Instance { get; private set; }
 
@@ -49,6 +49,7 @@ public class QuestManager : MonoBehaviour
         navBarUIManager = FindObjectOfType<NavBarUIManager>();
         mapManager = FindObjectOfType<MapManager>();
         timelinePlayerManager = FindObjectOfType<TimelinePlayerManager>();
+        quizManager = FindObjectOfType<QuizManager>();
 
         if (MapManager.Instance != null)
         {
@@ -58,29 +59,29 @@ public class QuestManager : MonoBehaviour
         if (targetManager != null)
         {
             Debug.Log("TargetManager ready!");
+            // Wait for location provider to be ready before showing greeting
+            StartCoroutine(WaitForLocationProviderAndShowGreeting());
         }
         else
         {
             Debug.LogError("No TargetManager found in the scene!");
         }
-
-        ShowGreeting();
     }
 
     private void Update()
     {
     }
 
-    public void ShowLocationReachedPanel()
+    public void ShowArtifactCollectedPanel()
     {
-        Debug.Log("Showing location reached panel");
-        locationReachedPanel.SetActive(true);
+        Debug.Log("Showing artifact collected panel");
+        artifactCollectedPanel.SetActive(true);
     }
 
-    public void HideLocationReachedPanel()
+    public void HideArtifactCollectedPanel()
     {
-        Debug.Log("Hiding location reached panel");
-        locationReachedPanel.SetActive(false);
+        Debug.Log("Hiding artifact collected panel");
+        artifactCollectedPanel.SetActive(false);
     }
 
     public void SpawnUnreachedTargetInAR()
@@ -89,6 +90,19 @@ public class QuestManager : MonoBehaviour
     }
 
     #region Greeting
+    private IEnumerator WaitForLocationProviderAndShowGreeting()
+    {
+        // Wait for location provider to be ready
+        while (!targetManager.IsLocationProviderReady())
+        {
+            Debug.Log("Waiting for location provider to initialize...");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        Debug.Log("Location provider ready! Showing greeting panel.");
+        ShowGreeting();
+    }
+    
     private void ShowGreeting()
     {
         StartCoroutine(FadeInCanvas(greetingPanel.GetComponent<CanvasGroup>()));
@@ -97,37 +111,14 @@ public class QuestManager : MonoBehaviour
     public void OnBeginButtonClicked()
     {
         greetingPanel.SetActive(false);
+        timelinePlayerManager.ActivateAndPlayTimeline(0);
+    }
+    #endregion
+
+    public void StartNextQuestStep()
+    {
         targetManager.EnableLocationUpdates();
-        StartNextQuestStep();
-    }
-    #endregion
-
-    #region Completed
-    private void ShowCompletedButton()
-    {
-        StartCoroutine(FadeInCanvas(completedPanel.GetComponent<CanvasGroup>()));
-    }
-
-    public void OnCompletedButtonClicked()
-    {
-        OnTargetCompleted();
-    }
-    #endregion
-
-    public void HideAllQuestPanels()
-    {
-        foreach (var step in questSteps)
-        {
-            if (step.panel != null) step.panel.SetActive(false);
-            if (step.reachedPanel != null) step.reachedPanel.SetActive(false);
-        }
-    }
-
-    private void StartNextQuestStep()
-    {
         currentStepIndex++;
-
-        timelinePlayerManager.SetTimeline(currentStepIndex); // sets player to first timeline
 
         if (currentStepIndex >= questSteps.Count)
         {
@@ -141,11 +132,11 @@ public class QuestManager : MonoBehaviour
 
         Debug.Log($"Starting quest step {currentStepIndex}: {step.questName}");
 
-        if (step.panel != null)
+        if (newQuestPanel != null)
         {
-            step.panel.SetActive(true);
+            newQuestPanel.SetActive(true);
             navBarUIManager.MapNewQuest(); // flash map button
-            StartCoroutine(FadeAwayCanvas(step.panel.GetComponent<CanvasGroup>()));
+            StartCoroutine(FadeAwayCanvas(newQuestPanel.GetComponent<CanvasGroup>()));
         }
     }
 
@@ -169,20 +160,19 @@ public class QuestManager : MonoBehaviour
         step.isReached = true;
 
         Debug.Log($"Quest step {currentStepIndex} reached!");
-
-        backpackItems[currentStepIndex].SetActive(true);
-        ShowLocationReachedPanel();
-        //StartCoroutine(FadeAwayCanvas(locationReachedPanel.GetComponent<CanvasGroup>()));
-        navBarUIManager.BackpackNewItem();
+        
+        // Remove the undiscovered AR prefab
+        targetManager.RemoveCurrentUndiscoveredARPrefab();
+        
+        // Enable plane detection and show tap-to-place prompt
+        targetManager.EnableTapToPlaceMode(currentStepIndex);
+        
         mapManager.ShowLocationReachedPanel();
+    }
 
-        //ShowCompletedButton();
-
-        // if (step.reachedPanel != null)
-        //     step.reachedPanel.SetActive(true);
-
-        // if (step.panel != null)
-        //     step.panel.SetActive(false);
+    public void OnQuizCompleted() {
+        quizManager.HideQuiz();
+        OnTargetCompleted();
     }
 
     // Called when player does the required interaction to fully complete the quest
@@ -194,20 +184,29 @@ public class QuestManager : MonoBehaviour
         if (step.isCompleted) return;
         step.isCompleted = true;
 
-        Debug.Log($"Quest step {currentStepIndex} COMPLETED!");
         targetManager.MarkCurrentTargetCompleted();
-        StartNextQuestStep();
+        Debug.Log($"Quest step {currentStepIndex} COMPLETED!");
 
-        // if (step.reachedPanel != null)
-        //     step.reachedPanel.SetActive(false);
-
-        // OnTargetReachedPanelClosed();
+        backpackItems[currentStepIndex].SetActive(true);
+        navBarUIManager.BackpackNewItem();
+        ShowArtifactCollectedPanel();
+        StartCoroutine(FadeAwayCanvas(artifactCollectedPanel.GetComponent<CanvasGroup>()));
     }
 
-    private void OnTargetReachedPanelClosed()
+    public void ShowQuiz()
     {
-        StartNextQuestStep();
+        if (quizManager != null)
+        {
+            quizPanel.SetActive(true);
+            StartCoroutine(FadeAwayCanvas(quizPanel.GetComponent<CanvasGroup>()));
+            OnQuizCompleted();
+        }
+        else
+        {
+            Debug.LogWarning("QuizManager not found!");
+        }
     }
+
 
     private IEnumerator FadeInCanvas(CanvasGroup canvas)
     {
@@ -229,5 +228,6 @@ public class QuestManager : MonoBehaviour
             yield return null;
         }
         canvas.gameObject.SetActive(false);
+        canvas.alpha = 1f;
     }
 }

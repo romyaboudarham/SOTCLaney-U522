@@ -8,6 +8,8 @@ using Mapbox.Example.Scripts.Map;
 using Mapbox.LocationModule; // GPS
 using TMPro;
 using UnityEngine.XR.ARFoundation;
+using UnityEngine.XR.ARSubsystems;
+using UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets;
 
 public class TargetManager : MonoBehaviour
 {
@@ -37,11 +39,19 @@ public class TargetManager : MonoBehaviour
     [Header("AR Spawn Settings")]
     [SerializeField] private float maxArSpawnRangeMeters = 50f;
     [SerializeField] private float arSpawnScale = 0.15f;
+    
+    [Header("Tap to Place Settings")]
+    [SerializeField] private GameObject tapToPlacePrompt;
+    [SerializeField] private ObjectSpawner objectSpawner;
+    private bool isTapToPlaceMode = false;
+    private ARPlaneManager arPlaneManager;
+    
     private MapboxMapBehaviour _mapCore;
     private MapboxMap _map;
     private QuestManager questManager;
     private MapManager mapManager;
     private BootstrapLoader bootstrapLoader;
+    private TimelinePlayerManager timelinePlayerManager;
     private ILocationProvider _locationProvider; // GPS
 
     private int currentTargetIndex = 0;
@@ -53,6 +63,21 @@ public class TargetManager : MonoBehaviour
         questManager = FindObjectOfType<QuestManager>();
         mapManager = FindObjectOfType<MapManager>();
         bootstrapLoader = FindObjectOfType<BootstrapLoader>();
+        timelinePlayerManager = FindObjectOfType<TimelinePlayerManager>();
+        arPlaneManager = FindObjectOfType<ARPlaneManager>();
+        
+        if (objectSpawner == null)
+        {
+            objectSpawner = FindObjectOfType<ObjectSpawner>();
+            Debug.Log($"ObjectSpawner found: {objectSpawner != null}");
+        }
+        
+        // Subscribe to ObjectSpawner events after finding it
+        if (objectSpawner != null)
+        {
+            objectSpawner.objectSpawned += OnObjectSpawned;
+            Debug.Log("Subscribed to ObjectSpawner.objectSpawned event in Start()");
+        }
 
         if (bootstrapLoader != null && mapManager != null)
         {
@@ -70,9 +95,28 @@ public class TargetManager : MonoBehaviour
 
     private void OnEnable()
     {
-        if (bootstrapLoader != null && _mapCore == null)
+        // Initialize location provider early
+        if (_locationProvider == null)
         {
             _locationProvider = LocationProviderFactory.Instance.DefaultLocationProvider;
+        }
+        
+        // Subscribe to ObjectSpawner events (if not already done in Start)
+        if (objectSpawner != null)
+        {
+            objectSpawner.objectSpawned += OnObjectSpawned;
+            Debug.Log("Subscribed to ObjectSpawner.objectSpawned event in OnEnable()");
+        }
+    }
+    
+    private void OnDisable()
+    {
+        DisableLocationUpdates();
+        
+        // Unsubscribe from ObjectSpawner events
+        if (objectSpawner != null)
+        {
+            objectSpawner.objectSpawned -= OnObjectSpawned;
         }
     }
 
@@ -83,6 +127,15 @@ public class TargetManager : MonoBehaviour
             Debug.Log("Enabling GPS updates");
             _locationProvider.OnLocationUpdated += HandleLocationUpdated;
         }
+        else
+        {
+            Debug.LogError("Location provider is null - cannot enable GPS updates. Make sure TargetManager is properly initialized.");
+        }
+    }
+    
+    public bool IsLocationProviderReady()
+    {
+        return _locationProvider != null;
     }
 
     public void DisableLocationUpdates()
@@ -92,11 +145,6 @@ public class TargetManager : MonoBehaviour
             Debug.Log("Disabling GPS updates");
             _locationProvider.OnLocationUpdated -= HandleLocationUpdated;
         }
-    }
-
-    private void OnDisable()
-    {
-        DisableLocationUpdates();
     }
 
     private void OnDestroy()
@@ -109,6 +157,8 @@ public class TargetManager : MonoBehaviour
 
     private void HandleLocationUpdated(Location location)
     {
+        //Debug.Log($"GPS Location updated: {location.LatitudeLongitude.Latitude}, {location.LatitudeLongitude.Longitude}");
+        
         Vector2d playerPos = new Vector2d(
             location.LatitudeLongitude.Latitude,
             location.LatitudeLongitude.Longitude
@@ -172,6 +222,7 @@ public class TargetManager : MonoBehaviour
 
         target.currentInstance = instance;
     }
+    
     public static LatitudeLongitude Vector2dToLatLon(Vector2d v)
     {
         if (v == null)
@@ -212,72 +263,6 @@ public class TargetManager : MonoBehaviour
         return go;
     }
 
-    private Vector3 ComputeArRelativeOffsetMeters(LatitudeLongitude player, LatitudeLongitude target)
-    {
-        // Convert degrees to radians
-        float lat1 = (float)player.Latitude * Mathf.Deg2Rad;
-        float lon1 = (float)player.Longitude * Mathf.Deg2Rad;
-        float lat2 = (float)target.Latitude * Mathf.Deg2Rad;
-        float lon2 = (float)target.Longitude * Mathf.Deg2Rad;
-
-        const float EarthRadius = 6378137f; // meters
-        float dLat = lat2 - lat1;
-        float dLon = lon2 - lon1;
-        float meanLat = (lat1 + lat2) * 0.5f;
-
-        // East-North in meters (ENU) - absolute GPS-based position
-        float metersNorth = dLat * EarthRadius; // +Z
-        float metersEast = dLon * EarthRadius * Mathf.Cos(meanLat); // +X
-        Vector3 enu = new Vector3(metersEast, 0f, metersNorth);
-
-        // DON'T rotate position by compass - keep absolute GPS position
-        // Compass rotation is applied separately in SpawnAtGeoPosition for object orientation only
-        return enu;
-    }
-
-    private Vector3 ClampRange(Vector3 v, float maxMagnitude)
-    {
-        if (v.sqrMagnitude <= maxMagnitude * maxMagnitude) return v;
-        return v.normalized * maxMagnitude;
-    }
-
-    private float GetCompassHeading()
-    {
-        // Start compass if not already started
-        if (!Input.compass.enabled)
-        {
-            Input.compass.enabled = true;
-        }
-        
-        float heading = 0f;
-        
-        // Wait a moment for compass to initialize
-        if (Input.compass.enabled)
-        {
-            // Use true heading if available (more accurate)
-            if (Input.compass.trueHeading != 0f)
-            {
-                heading = Input.compass.trueHeading;
-                Debug.Log($"Using compass trueHeading: {heading}");
-            }
-            // Fallback to magnetic heading
-            else if (Input.compass.magneticHeading != 0f)
-            {
-                heading = Input.compass.magneticHeading;
-                Debug.Log($"Using compass magneticHeading: {heading}");
-            }
-        }
-        
-        // Final fallback to camera yaw if compass not available
-        if (heading == 0f)
-        {
-            heading = arCamera != null ? arCamera.transform.eulerAngles.y : 0f;
-            Debug.Log($"Using camera yaw fallback: {heading}");
-        }
-        
-        return heading;
-    }
-
     // Called by QuestManager when we are in AR scene and new quest started
     public void SpawnUnreachedTargetInAR(Target currentTarget, LatitudeLongitude targetLatLng, Vector2d playerVec)
     {
@@ -290,8 +275,8 @@ public class TargetManager : MonoBehaviour
         var playerLatLng = Vector2dToLatLon(playerVec);
 
         // Compute AR-space relative offset in meters using ENU
-        Vector3 relativePos = ComputeArRelativeOffsetMeters(playerLatLng, targetLatLng);
-        relativePos = ClampRange(relativePos, maxArSpawnRangeMeters);
+        Vector3 relativePos = GeoMathUtils.ComputeArRelativeOffsetMeters(playerLatLng, targetLatLng);
+        relativePos = GeoMathUtils.ClampRange(relativePos, maxArSpawnRangeMeters);
 
         currentTarget.arInstance = SpawnAtGeoPosition(Prefab_AR_Undiscovered, relativePos, arSpawnScale);
     }
@@ -302,7 +287,7 @@ public class TargetManager : MonoBehaviour
         Vector3 worldPos = arCamera.transform.position + relativePos;
         
         // Apply compass rotation only to object orientation, not position
-        float compassHeading = GetCompassHeading();
+        float compassHeading = GeoMathUtils.GetCompassHeading(arCamera);
         Quaternion compassRotation = Quaternion.Euler(0f, compassHeading, 0f);
         Pose pose = new Pose(worldPos, compassRotation);
 
@@ -328,13 +313,18 @@ public class TargetManager : MonoBehaviour
 
     public void HandlePlayerNearCurrentTarget(Vector2d playerPos)
     {
-        if (currentTargetIndex < 0 || currentTargetIndex >= targets.Count || _map == null) return;
+        
+        if (currentTargetIndex < 0 || currentTargetIndex >= targets.Count || _map == null) 
+        {
+            Debug.Log($"Early return - currentTargetIndex: {currentTargetIndex}, targets.Count: {targets.Count}, _map: {_map != null}");
+            return;
+        }
         Target currentTarget = targets[currentTargetIndex];
 
         var targetLatLng = Conversions.StringToLatLon(currentTarget.locationString);
         Vector2d targetPos = new Vector2d(targetLatLng.Latitude, targetLatLng.Longitude);
 
-        double distanceToTarget = Distance(
+        double distanceToTarget = GeoMathUtils.CalculateDistance(
             playerPos.x, playerPos.y,
             targetPos.x, targetPos.y, 'K'
         );
@@ -346,6 +336,8 @@ public class TargetManager : MonoBehaviour
             "\nLon: " + playerPos.y +
             "\n\nDistance: " + distanceToTarget;
 
+        //Debug.Log("Distance to target: " + distanceToTarget);
+        
         // Player is close enough
         if (distanceToTarget <= thresholdKm && !currentTarget.reached)
         {
@@ -373,17 +365,12 @@ public class TargetManager : MonoBehaviour
         if (!currentTarget.completed)
         {
             targets[currentTargetIndex].completed = true;
-            Debug.Log($"Quest step {currentTargetIndex} marked COMPLETED!");
-
-
-            // Advance QuestManager
-            questManager.OnTargetCompleted();
         }
     }
 
     public void ClearAllTargets()
     {
-        Debug.Log("Clearing all targets from map");
+       // Debug.Log("Clearing all targets from map");
         foreach (var target in targets)
         {
             if (target.currentInstance != null)
@@ -426,28 +413,79 @@ public class TargetManager : MonoBehaviour
         }
     }
 
-    // DISTANCE CALCULATIONS
-    private double Distance(double lat1, double lon1, double lat2, double lon2, char unit)
+    // Tap to Place functionality using ObjectSpawner
+    public void RemoveCurrentUndiscoveredARPrefab()
     {
-        if ((lat1 == lat2) && (lon1 == lon2)) return 0;
-
-        double theta = lon1 - lon2;
-        double dist = Math.Sin(deg2rad(lat1)) * Math.Sin(deg2rad(lat2)) +
-                      Math.Cos(deg2rad(lat1)) * Math.Cos(deg2rad(lat2)) * Math.Cos(deg2rad(theta));
-
-        dist = Math.Acos(dist);
-        dist = rad2deg(dist);
-        dist = dist * 60 * 1.1515;
-
-        if (unit == 'K') dist = dist * 1.609344;
-        else if (unit == 'N') dist = dist * 0.8684;
-
-        return dist;
+        if (currentTargetIndex < 0 || currentTargetIndex >= targets.Count) return;
+        var currentTarget = targets[currentTargetIndex];
+        
+        if (currentTarget.arInstance != null)
+        {
+            Debug.Log($"Removing undiscovered AR prefab for target {currentTargetIndex}");
+            Destroy(currentTarget.arInstance);
+            currentTarget.arInstance = null;
+        }
     }
 
-    private double deg2rad(double deg) => (deg * Math.PI / 180.0);
-    private double rad2deg(double rad) => (rad / Math.PI * 180.0);
+    public void EnableTapToPlaceMode(int stepIndex)
+    {
+        Debug.Log($"Enabling tap to place mode for step {stepIndex}");
+        isTapToPlaceMode = true;
+        
+        // Enable plane detection using AR Foundation
+        if (arPlaneManager != null)
+        {
+            arPlaneManager.enabled = true;
+            arPlaneManager.requestedDetectionMode = PlaneDetectionMode.Horizontal;
+        }
+        
+        // Configure ObjectSpawner with the current target's discovered prefab
+        if (objectSpawner != null && currentTargetIndex >= 0 && currentTargetIndex < targets.Count)
+        {
+            var currentTarget = targets[currentTargetIndex];
+            objectSpawner.spawnOptionIndex = currentTargetIndex;
+            
+            // Make sure the prefab is in the objectPrefabs list
+            if (!objectSpawner.objectPrefabs.Contains(currentTarget.Prefab_Completed))
+            {
+                objectSpawner.objectPrefabs.Add(currentTarget.Prefab_Completed);
+                objectSpawner.spawnOptionIndex = objectSpawner.objectPrefabs.Count - 1;
+            }
+        }
+        // Show tap to place prompt
+        if (tapToPlacePrompt != null)
+        {
+            tapToPlacePrompt.SetActive(true);
+        }
+    }
+
+    public void DisableTapToPlaceMode()
+    {
+        Debug.Log("Disabling tap to place mode");
+        isTapToPlaceMode = false;
+        // Don't reset tapToPlaceStepIndex - it should persist for the current quest step
+        
+        // Hide tap to place prompt
+        if (tapToPlacePrompt != null)
+        {
+            tapToPlacePrompt.SetActive(false);
+        }
+    }
+    
+    // Called by ObjectSpawner when object is spawned
+    private void OnObjectSpawned(GameObject spawnedObject)
+    {
+        Debug.Log($"OnObjectSpawned called! Object: {spawnedObject?.name}, isTapToPlaceMode: {isTapToPlaceMode}");
+        
+        if (!isTapToPlaceMode) return;
+        
+        // Disable tap to place mode
+        DisableTapToPlaceMode();
+        
+        // Trigger timeline
+        if (timelinePlayerManager != null)
+        {
+            timelinePlayerManager.ActivateAndPlayTimeline(currentTargetIndex+1); // 0 is intro
+        }
+    }
 }
-
-
-      

@@ -182,8 +182,6 @@ public class NavBarUIManager : MonoBehaviour
         }
 
         timelinePlayerManager.SaveAndPause();
-
-        questManager.HideAllQuestPanels();
     }
 
     private void placeObjectOnboarding()
@@ -199,7 +197,7 @@ public class NavBarUIManager : MonoBehaviour
 
     void ShowBackpack()
     {
-        questManager.HideLocationReachedPanel();
+        questManager.HideArtifactCollectedPanel();
         aRPlaneManager.enabled = true;
         m_ShowObjectMenu = true;
         m_ObjectMenu.SetActive(true);
@@ -216,7 +214,9 @@ public class NavBarUIManager : MonoBehaviour
     {
         if (isBackpackBlinking)
         {
+            // just got an artifact, so show new quest
             StopBackpackBlinking();
+            questManager.StartNextQuestStep();
            // questManager.FadeAwayCanvas();
         }
         m_ObjectMenuAnimator.SetBool("Show", false);

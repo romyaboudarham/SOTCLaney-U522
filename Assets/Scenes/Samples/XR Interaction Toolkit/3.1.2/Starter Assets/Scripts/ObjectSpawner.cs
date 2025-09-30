@@ -232,7 +232,9 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
             // ✅ Track it
             spawnedObjects[prefab] = newObject;
 
+            Debug.Log($"ObjectSpawner: About to invoke objectSpawned event for {newObject.name}");
             objectSpawned?.Invoke(newObject);
+            Debug.Log($"ObjectSpawner: Event invoked successfully");
             return true;
         }
     }
