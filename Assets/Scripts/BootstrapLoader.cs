@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using UnityEngine.XR.ARFoundation;
 
 using Mapbox.BaseModule.Map;
 using Mapbox.Example.Scripts.Map;
@@ -49,9 +50,31 @@ public class BootstrapLoader : MonoBehaviour
         }
         Debug.Log("mapCore found.");
 
+        // Wait for location permissions to be granted (skip in editor)
+        #if !UNITY_EDITOR
+        Debug.Log("Checking location permissions...");
+        
+        // Start location service first
+        if (!Input.location.isEnabledByUser)
+        {
+            Debug.Log("Starting location service...");
+            Input.location.Start();
+        }
+        
+        while (!Input.location.isEnabledByUser)
+        {
+            Debug.Log("Location not enabled by user, waiting...");
+            yield return new WaitForSeconds(1f);
+        }
+        Debug.Log("Location permissions granted.");
+        #else
+        Debug.Log("Editor mode - skipping location permission check.");
+        #endif
+
         // Wait for MapboxMap component inside mapcore
         _mapCore.Initialized += (map) =>
         {
+            Debug.Log("Map initialization event fired!");
             StartCoroutine(WaitUntilReady(map));
         };
     }

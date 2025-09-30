@@ -28,13 +28,19 @@ public class TargetManager : MonoBehaviour
     }
 
     [SerializeField] Camera arCamera;
+    [SerializeField] private GameObject Prefab_AR_Undiscovered;
     [SerializeField] private List<Target> targets;
     [SerializeField] private Transform arTargetsRoot;
+    [SerializeField] private ARAnchorManager anchorManager;
     public TMP_Text debugTxt;
 
+    [Header("AR Spawn Settings")]
+    [SerializeField] private float maxArSpawnRangeMeters = 50f;
+    [SerializeField] private float arSpawnScale = 0.15f;
     private MapboxMapBehaviour _mapCore;
     private MapboxMap _map;
     private QuestManager questManager;
+    private MapManager mapManager;
     private BootstrapLoader bootstrapLoader;
     private ILocationProvider _locationProvider; // GPS
 
@@ -45,9 +51,12 @@ public class TargetManager : MonoBehaviour
     private void Start()
     {
         questManager = FindObjectOfType<QuestManager>();
+        mapManager = FindObjectOfType<MapManager>();
         bootstrapLoader = FindObjectOfType<BootstrapLoader>();
         _mapCore = bootstrapLoader.GetMapCore();
         _map = bootstrapLoader.GetMap();
+
+        MapManager.Instance.targetManager = this;
 
         if (_map == null)
         {
@@ -178,55 +187,136 @@ public class TargetManager : MonoBehaviour
         return Instantiate(prefab, pose.position, pose.rotation, arTargetsRoot);
     }
 
+    public GameObject SpawnCurrentTargetTestInFront(float meters = 3f, float scale = 1f)
+    {
+        if (currentTargetIndex < 0 || currentTargetIndex >= targets.Count)
+        {
+            Debug.LogWarning("SpawnCurrentTargetTestInFront: invalid currentTargetIndex");
+            return null;
+        }
+        var currentTarget = targets[currentTargetIndex];
+        if (currentTarget == null || currentTarget.Prefab_Undiscovered == null)
+        {
+            Debug.LogWarning("SpawnCurrentTargetTestInFront: current target or prefab is null");
+            return null;
+        }
+        var go = SpawnTestInFront(currentTarget.Prefab_Undiscovered, meters);
+        go.transform.localScale = Vector3.one * (Mathf.Approximately(scale, 0f) ? 1f : scale);
+        currentTarget.arInstance = go;
+        return go;
+    }
+
+    private Vector3 ComputeArRelativeOffsetMeters(LatitudeLongitude player, LatitudeLongitude target)
+    {
+        // Convert degrees to radians
+        float lat1 = (float)player.Latitude * Mathf.Deg2Rad;
+        float lon1 = (float)player.Longitude * Mathf.Deg2Rad;
+        float lat2 = (float)target.Latitude * Mathf.Deg2Rad;
+        float lon2 = (float)target.Longitude * Mathf.Deg2Rad;
+
+        const float EarthRadius = 6378137f; // meters
+        float dLat = lat2 - lat1;
+        float dLon = lon2 - lon1;
+        float meanLat = (lat1 + lat2) * 0.5f;
+
+        // East-North in meters (ENU) - absolute GPS-based position
+        float metersNorth = dLat * EarthRadius; // +Z
+        float metersEast = dLon * EarthRadius * Mathf.Cos(meanLat); // +X
+        Vector3 enu = new Vector3(metersEast, 0f, metersNorth);
+
+        // DON'T rotate position by compass - keep absolute GPS position
+        // Compass rotation is applied separately in SpawnAtGeoPosition for object orientation only
+        return enu;
+    }
+
+    private Vector3 ClampRange(Vector3 v, float maxMagnitude)
+    {
+        if (v.sqrMagnitude <= maxMagnitude * maxMagnitude) return v;
+        return v.normalized * maxMagnitude;
+    }
+
+    private float GetCompassHeading()
+    {
+        // Start compass if not already started
+        if (!Input.compass.enabled)
+        {
+            Input.compass.enabled = true;
+        }
+        
+        float heading = 0f;
+        
+        // Wait a moment for compass to initialize
+        if (Input.compass.enabled)
+        {
+            // Use true heading if available (more accurate)
+            if (Input.compass.trueHeading != 0f)
+            {
+                heading = Input.compass.trueHeading;
+                Debug.Log($"Using compass trueHeading: {heading}");
+            }
+            // Fallback to magnetic heading
+            else if (Input.compass.magneticHeading != 0f)
+            {
+                heading = Input.compass.magneticHeading;
+                Debug.Log($"Using compass magneticHeading: {heading}");
+            }
+        }
+        
+        // Final fallback to camera yaw if compass not available
+        if (heading == 0f)
+        {
+            heading = arCamera != null ? arCamera.transform.eulerAngles.y : 0f;
+            Debug.Log($"Using camera yaw fallback: {heading}");
+        }
+        
+        return heading;
+    }
+
     // Called by QuestManager when we are in AR scene and new quest started
     public void SpawnUnreachedTargetInAR(Target currentTarget, LatitudeLongitude targetLatLng, Vector2d playerVec)
     {
+        if (currentTarget == null || Prefab_AR_Undiscovered == null)
+        {
+            Debug.LogWarning("SpawnUnreachedTargetInAR: target or prefab missing");
+            return;
+        }
+
         var playerLatLng = Vector2dToLatLon(playerVec);
-        var playerPos = _map.MapInformation.ConvertLatLngToPosition(playerLatLng);
-        var targetPos = _map.MapInformation.ConvertLatLngToPosition(targetLatLng);
 
-        Vector3 relativePos = targetPos - playerPos;
-        var prefab = currentTarget.Prefab_Undiscovered;
-        var spawnScale = 4f;
+        // Compute AR-space relative offset in meters using ENU
+        Vector3 relativePos = ComputeArRelativeOffsetMeters(playerLatLng, targetLatLng);
+        relativePos = ClampRange(relativePos, maxArSpawnRangeMeters);
 
-        currentTarget.arInstance = SpawnAtGeoPosition(prefab, relativePos, spawnScale);
-
-        // var instance = Instantiate(
-        //     prefab,
-        //     localPos,
-        //     Quaternion.identity,
-        //     arTargetsRoot
-        // );
-        // instance.transform.localScale = Vector3.one * spawnScale;
-
-        // currTarget.arInstance = instance;
-
+        currentTarget.arInstance = SpawnAtGeoPosition(Prefab_AR_Undiscovered, relativePos, arSpawnScale);
     }
 
-     public GameObject SpawnAtGeoPosition(GameObject prefab, Vector3 relativePos, float scale = 1f)
+     public GameObject SpawnAtGeoPosition(GameObject prefab, Vector3 relativePos, float scale)
     {
-        // Calculate where in AR space the object should go
+        // Calculate where in AR space the object should go (absolute GPS position)
         Vector3 worldPos = arCamera.transform.position + relativePos;
+        
+        // Apply compass rotation only to object orientation, not position
+        float compassHeading = GetCompassHeading();
+        Quaternion compassRotation = Quaternion.Euler(0f, compassHeading, 0f);
+        Pose pose = new Pose(worldPos, compassRotation);
 
-        Pose pose = new Pose(worldPos, Quaternion.identity);
-
+        // Create an anchor GameObject at the pose and add ARAnchor component
         GameObject anchorObject = new GameObject("ARAnchor");
-        anchorObject.transform.SetParent(arTargetsRoot, false); // parent under ARRoot
-        anchorObject.transform.position = pose.position;
-        anchorObject.transform.rotation = pose.rotation;
-
+        anchorObject.transform.SetParent(arTargetsRoot, false);
+        anchorObject.transform.SetPositionAndRotation(pose.position, pose.rotation);
         ARAnchor anchor = anchorObject.AddComponent<ARAnchor>();
 
         if (anchor == null)
         {
-            Debug.LogWarning("Could not create anchor. Falling back to plain spawn.");
-            return Instantiate(prefab, worldPos, Quaternion.identity, arTargetsRoot);
+            // Fallback to plain spawn if anchoring not available
+            var go = Instantiate(prefab, pose.position, pose.rotation, arTargetsRoot);
+            go.transform.localScale = Vector3.one * scale;
+            return go;
         }
 
         // Instantiate prefab as child of the anchor
         GameObject instance = Instantiate(prefab, pose.position, pose.rotation, anchor.transform);
         instance.transform.localScale = Vector3.one * scale;
-
         return instance;
     }
 
@@ -294,6 +384,38 @@ public class TargetManager : MonoBehaviour
             {
                 Destroy(target.currentInstance);
                 target.currentInstance = null;
+            }
+        }
+    }
+
+    // Called when map is opened to refresh AR target positions with current camera orientation
+    public void RefreshARTargetOrientations()
+    {
+        Debug.Log("Refreshing AR target orientations with current camera heading");
+        
+        // Get current player position
+        if (_locationProvider == null) return;
+        
+        var currentLocation = _locationProvider.CurrentLocation;
+        
+        Vector2d playerPos = new Vector2d(
+            currentLocation.LatitudeLongitude.Latitude,
+            currentLocation.LatitudeLongitude.Longitude
+        );
+
+        // Update AR target positions for all active targets
+        for (int i = 0; i <= currentTargetIndex && i < targets.Count; i++)
+        {
+            var target = targets[i];
+            if (target.arInstance != null && !target.completed)
+            {
+                // Destroy existing AR instance
+                Destroy(target.arInstance);
+                target.arInstance = null;
+                
+                // Respawn with current orientation
+                var targetLatLng = Conversions.StringToLatLon(target.locationString);
+                SpawnUnreachedTargetInAR(target, targetLatLng, playerPos);
             }
         }
     }

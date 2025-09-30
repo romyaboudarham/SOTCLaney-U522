@@ -124,8 +124,6 @@ public class QuestManager : MonoBehaviour
     {
         currentStepIndex++;
 
-        targetManager.SpawnTestInFront(questSteps[currentStepIndex].prefab);
-
         // TODO: troubleshoot this
         //SpawnUnreachedTargetInAR();
 
