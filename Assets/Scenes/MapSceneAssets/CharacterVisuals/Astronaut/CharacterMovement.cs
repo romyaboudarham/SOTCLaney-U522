@@ -106,7 +106,7 @@ namespace Mapbox.Examples
 			if (heading == 0f)
 			{
 				heading = Camera.main != null ? Camera.main.transform.eulerAngles.y : 0f;
-				Debug.Log($"Astronaut using camera yaw fallback: {heading}");
+				//Debug.Log($"Astronaut using camera yaw fallback: {heading}");
 			}
 			
 			return heading;

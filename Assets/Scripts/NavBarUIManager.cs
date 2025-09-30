@@ -9,9 +9,11 @@ using UnityEngine.XR.ARFoundation;
 
 public class NavBarUIManager : MonoBehaviour
 {
+    public static NavBarUIManager Instance { get; private set; }
     [SerializeField] private ARPlaneManager aRPlaneManager;
 
     private QuestManager questManager;
+    private TimelinePlayerManager timelinePlayerManager;
     private bool isMapOpen = false;
 
     private bool isMapBlinking;
@@ -23,8 +25,6 @@ public class NavBarUIManager : MonoBehaviour
 
     bool initBackpackOpen = true;
 
-
-    public static NavBarUIManager Instance { get; private set; }
     [SerializeField]
     [Tooltip("The animator for the object creation menu.")]
     Animator m_ObjectMenuAnimator;
@@ -137,6 +137,7 @@ public class NavBarUIManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        timelinePlayerManager = FindObjectOfType<TimelinePlayerManager>();
         questManager = FindObjectOfType<QuestManager>();
         mapButtonImage = m_MapButton.GetComponent<Image>();
         backpackButtonImage = m_BackpackButton.GetComponent<Image>();
@@ -179,6 +180,8 @@ public class NavBarUIManager : MonoBehaviour
             initBackpackOpen = false;
             placeObjectOnboarding();
         }
+
+        timelinePlayerManager.SaveAndPause();
 
         questManager.HideAllQuestPanels();
     }

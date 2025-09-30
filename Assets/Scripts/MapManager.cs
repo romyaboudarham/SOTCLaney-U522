@@ -8,7 +8,7 @@ public class MapManager : MonoBehaviour
     public QuestManager questManager  { get; set; }
     public TargetManager targetManager  { get; set; }
     public NavBarUIManager navBarUIManager  { get; set; }
-    public MultiTimelinePlayerUI timelineManager  { get; set; }
+    public TimelinePlayerManager timelinePlayerManager  { get; set; }
 
     public bool IsMapOpen { get; set; }
     
@@ -49,8 +49,7 @@ public class MapManager : MonoBehaviour
             targetManager.RefreshARTargetOrientations();
         }
 
-        // questManager.ClearUnreachedTargetInAR();
-        //questManager.SpawnUnreachedTargetInAR();
+        timelinePlayerManager.Restore();
         CameraUIManager.Instance.ShowAR();
     }
 }

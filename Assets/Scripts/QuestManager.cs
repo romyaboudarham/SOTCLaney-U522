@@ -28,7 +28,7 @@ public class QuestManager : MonoBehaviour
     private TargetManager targetManager;
     private NavBarUIManager navBarUIManager;
     private MapManager mapManager;
-    private MultiTimelinePlayerUI timelineManager;
+    private TimelinePlayerManager timelinePlayerManager;
 
     public static QuestManager Instance { get; private set; }
 
@@ -47,7 +47,7 @@ public class QuestManager : MonoBehaviour
         targetManager = FindObjectOfType<TargetManager>();
         navBarUIManager = FindObjectOfType<NavBarUIManager>();
         mapManager = FindObjectOfType<MapManager>();
-        timelineManager = FindObjectOfType<MultiTimelinePlayerUI>();
+        timelinePlayerManager = FindObjectOfType<TimelinePlayerManager>();
 
         if (MapManager.Instance != null)
         {
@@ -126,7 +126,7 @@ public class QuestManager : MonoBehaviour
     {
         currentStepIndex++;
 
-        timelineManager.SetTimeline(currentStepIndex); // sets player to first timeline
+        timelinePlayerManager.SetTimeline(currentStepIndex); // sets player to first timeline
 
         if (currentStepIndex >= questSteps.Count)
         {
