@@ -17,6 +17,7 @@ public class QuestManager : MonoBehaviour
         [HideInInspector] public bool isCompleted;
     }
 
+    [SerializeField] private GameObject timelinePlayerUI;
     [SerializeField] private GameObject completedPanel;
     [SerializeField] private GameObject greetingPanel;
     [SerializeField] private GameObject locationReachedPanel;
