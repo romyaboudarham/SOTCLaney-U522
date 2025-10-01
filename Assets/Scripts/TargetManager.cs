@@ -33,7 +33,6 @@ public class TargetManager : MonoBehaviour
     [SerializeField] private GameObject Prefab_AR_Undiscovered;
     [SerializeField] private List<Target> targets;
     [SerializeField] private Transform arTargetsRoot;
-    [SerializeField] private ARAnchorManager anchorManager;
     public TMP_Text debugTxt;
 
     [Header("AR Spawn Settings")]
@@ -42,13 +41,12 @@ public class TargetManager : MonoBehaviour
     
     [Header("Tap to Place Settings")]
     [SerializeField] private GameObject tapToPlacePrompt;
-    [SerializeField] private ObjectSpawner objectSpawner;
     private bool isTapToPlaceMode = false;
     private ARPlaneManager arPlaneManager;
     
+    private ObjectSpawner objectSpawner;
     private MapboxMapBehaviour _mapCore;
     private MapboxMap _map;
-    private QuestManager questManager;
     private MapManager mapManager;
     private BootstrapLoader bootstrapLoader;
     private TimelinePlayerManager timelinePlayerManager;
@@ -61,7 +59,6 @@ public class TargetManager : MonoBehaviour
 
     private void Start()
     {
-        questManager = FindObjectOfType<QuestManager>();
         mapManager = FindObjectOfType<MapManager>();
         bootstrapLoader = FindObjectOfType<BootstrapLoader>();
         timelinePlayerManager = FindObjectOfType<TimelinePlayerManager>();
