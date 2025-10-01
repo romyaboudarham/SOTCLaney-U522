@@ -77,9 +77,16 @@ public class TimelinePlayerManager : MonoBehaviour
             progressSlider.value = (float)(active.time / active.duration);
             isUpdatingSlider = false;
             
+            // Debug timeline progress
+            if (activeIndex == 1) // Laney timeline
+            {
+                Debug.Log($"Laney Timeline Progress: {active.time:F2}/{active.duration:F2} ({(active.time/active.duration)*100:F1}%)");
+            }
+            
             // Check if timeline has finished
             if (active.time >= active.duration)
             {
+                Debug.Log($"Timeline {activeIndex} finished - time: {active.time:F2}, duration: {active.duration:F2}");
                 OnTimelineFinished();
             }
         }
@@ -101,6 +108,13 @@ public class TimelinePlayerManager : MonoBehaviour
         activeIndex = index;
         isPlaying = false;
         progressSlider.value = 0;
+
+        // Debug timeline info
+        var newTimeline = GetActiveTimeline();
+        if (newTimeline != null)
+        {
+            Debug.Log($"Timeline {index} info - Duration: {newTimeline.duration:F2}, State: {newTimeline.state}");
+        }
 
         TogglePlayPause();
     }
@@ -197,7 +211,7 @@ public class TimelinePlayerManager : MonoBehaviour
 
     private void OnTimelineFinished()
     {
-        Debug.Log("Timeline finished");
+        Debug.Log($"OnTimelineFinished called for timeline index: {activeIndex}");
         
         // PERFORMANCE OPTIMIZATION: Re-enable heavy systems after timeline
         EnablePerformanceHeavySystems();
@@ -206,6 +220,7 @@ public class TimelinePlayerManager : MonoBehaviour
         var active = GetActiveTimeline();
         if (active != null)
         {
+            Debug.Log($"Stopping timeline {activeIndex}, final time: {active.time:F2}, duration: {active.duration:F2}");
             active.Stop();
             isPlaying = false;
             UpdatePlayPauseIcon();
@@ -217,16 +232,34 @@ public class TimelinePlayerManager : MonoBehaviour
             timelinePlayerUI.SetActive(false);
         }
 
-        // check if the active timeline is the intro
+        // Handle different timeline completions
         if (activeIndex == 0) {
+            // Intro timeline - start next quest step
+            Debug.Log("Intro timeline finished - starting next quest step");
             questManager.StartNextQuestStep();
-            return;
         }
-        
-        // Call OnTargetCompleted on TargetManager
-        if (questManager != null)
+        else if (activeIndex == 1) {
+            // Laney timeline - cleanup tapped artifact and show quiz
+            Debug.Log("Laney timeline finished - cleaning up artifact and showing quiz");
+            
+            // Clean up the tapped artifact and disable tap-to-place
+            if (targetManager != null)
+            {
+                targetManager.CleanupTappedArtifact();
+            }
+            
+            if (questManager != null)
+            {
+                questManager.ShowQuiz();
+            }
+            else
+            {
+                Debug.LogError("QuestManager is null when trying to show quiz!");
+            }
+        }
+        else
         {
-            questManager.ShowQuiz();
+            Debug.LogWarning($"Unknown timeline index {activeIndex} finished");
         }
     }
     

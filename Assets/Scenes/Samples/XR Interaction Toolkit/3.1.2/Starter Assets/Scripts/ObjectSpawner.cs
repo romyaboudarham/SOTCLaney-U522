@@ -199,7 +199,7 @@ namespace UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets
 
             if (spawnedObjects.ContainsKey(prefab) && spawnedObjects[prefab] != null)
             {
-                Debug.Log($"Prefab {prefab.name} already spawned. Skipping.");
+               // Debug.Log($"Prefab {prefab.name} already spawned. Skipping.");
                 return false;
             }
 

@@ -152,6 +152,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   arRig: {fileID: 0}
+  arTargets: {fileID: 0}
   arUI: {fileID: 0}
   mapUI: {fileID: 0}
   mapTag: {fileID: 0}

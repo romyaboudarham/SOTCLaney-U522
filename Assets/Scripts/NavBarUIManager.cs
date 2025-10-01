@@ -23,8 +23,6 @@ public class NavBarUIManager : MonoBehaviour
     private bool isBackpackBlinking;
     private Image backpackButtonImage;
 
-    bool initBackpackOpen = true;
-
     [SerializeField]
     [Tooltip("The animator for the object creation menu.")]
     Animator m_ObjectMenuAnimator;
@@ -175,19 +173,7 @@ public class NavBarUIManager : MonoBehaviour
             StopMapBlinking();
         }
 
-        if (initBackpackOpen)
-        {
-            initBackpackOpen = false;
-            placeObjectOnboarding();
-        }
-
         timelinePlayerManager.SaveAndPause();
-    }
-
-    private void placeObjectOnboarding()
-    {
-        Debug.Log("Showing onboarding panel");
-        //instructionPanel.SetActive(true);
     }
 
     public void OnBackpackClick()
@@ -197,14 +183,16 @@ public class NavBarUIManager : MonoBehaviour
 
     void ShowBackpack()
     {
-        questManager.HideArtifactCollectedPanel();
         aRPlaneManager.enabled = true;
         m_ShowObjectMenu = true;
         m_ObjectMenu.SetActive(true);
-        if (!m_ObjectMenuAnimator.GetBool("Show"))
+        
+        // Always set Show to true to ensure animation triggers
+       if (!m_ObjectMenuAnimator.GetBool("Show"))
         {
             m_ObjectMenuAnimator.SetBool("Show", true);
         }
+        Debug.Log("Set Show to true for backpack animation");
     }
 
     /// <summary>
@@ -219,7 +207,16 @@ public class NavBarUIManager : MonoBehaviour
             questManager.StartNextQuestStep();
            // questManager.FadeAwayCanvas();
         }
+        
+        // Clean up any tapped artifacts when canceling backpack
+        var targetManager = FindObjectOfType<TargetManager>();
+        if (targetManager != null)
+        {
+            targetManager.CleanupTappedArtifact();
+        }
+        
         m_ObjectMenuAnimator.SetBool("Show", false);
+        Debug.Log("Set Show to false for backpack animation");
         m_ObjectMenu.SetActive(false);
         m_ShowObjectMenu = false;
     }

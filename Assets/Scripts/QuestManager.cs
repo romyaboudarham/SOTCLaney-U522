@@ -197,6 +197,12 @@ public class QuestManager : MonoBehaviour
     {
         if (quizManager != null)
         {
+            // Disable tap-to-place when showing quiz
+            if (targetManager != null)
+            {
+                targetManager.DisableTapToPlaceMode();
+            }
+            
             quizPanel.SetActive(true);
         }
         else

@@ -20,8 +20,8 @@ public class TargetManager : MonoBehaviour
         public string locationString;      // "37.7749,-122.4194" format
         public GameObject Prefab_Undiscovered;
         public float SpawnScale_Undiscovered;
-        public GameObject Prefab_Completed;
-        public float SpawnScale_Completed;
+        public GameObject Prefab_Artifact;
+        public float MapScale_Prefab_Artifact;
 
         [HideInInspector] public bool reached;      // Player arrived at location
         [HideInInspector] public bool completed;    // Player did the action at location
@@ -91,6 +91,37 @@ public class TargetManager : MonoBehaviour
             Debug.Log("MapboxMap is null! Cannot spawn targets.");
             return;
         }
+        
+        // Initialize ObjectSpawner with all targets' Prefab_Artifacts
+        InitializeObjectSpawnerPrefabs();
+    }
+
+    private void InitializeObjectSpawnerPrefabs()
+    {
+        if (objectSpawner == null)
+        {
+            Debug.LogWarning("ObjectSpawner is null, cannot initialize prefabs");
+            return;
+        }
+
+        // Clear the existing prefab list
+        objectSpawner.objectPrefabs.Clear();
+        
+        // Populate with all targets' Prefab_Artifacts in order
+        for (int i = 0; i < targets.Count; i++)
+        {
+            if (targets[i].Prefab_Artifact != null)
+            {
+                objectSpawner.objectPrefabs.Add(targets[i].Prefab_Artifact);
+                Debug.Log($"Added {targets[i].Prefab_Artifact.name} to ObjectSpawner at index {i}");
+            }
+            else
+            {
+                Debug.LogWarning($"Target {i} ({targets[i].targetName}) has null Prefab_Artifact");
+            }
+        }
+        
+        Debug.Log($"ObjectSpawner initialized with {objectSpawner.objectPrefabs.Count} prefabs");
     }
 
     private void OnEnable()
@@ -199,14 +230,14 @@ public class TargetManager : MonoBehaviour
         var latLng = Conversions.StringToLatLon(target.locationString);
         Vector3 localPos = _map.MapInformation.ConvertLatLngToPosition(latLng);
 
-        var prefab = target.completed ? target.Prefab_Completed : target.Prefab_Undiscovered;
+        var prefab = target.completed ? target.Prefab_Artifact : target.Prefab_Undiscovered;
         if (prefab == null)
         {
             Debug.LogError($"Prefab missing for target '{target.targetName}'. Completed={target.completed}. Assign in inspector.");
             return;
         }
 
-        var spawnScale = target.completed ? target.SpawnScale_Completed : target.SpawnScale_Undiscovered;
+        var spawnScale = target.completed ? target.MapScale_Prefab_Artifact : target.SpawnScale_Undiscovered;
 
         Transform parent = _mapCore.UnityContext != null ? _mapCore.UnityContext.MapRoot : null;
         if (parent == null)
@@ -439,18 +470,17 @@ public class TargetManager : MonoBehaviour
             arPlaneManager.requestedDetectionMode = PlaneDetectionMode.Horizontal;
         }
         
-        // Configure ObjectSpawner with the current target's discovered prefab
+        // Enable ObjectSpawner for tapping
+        if (objectSpawner != null)
+        {
+            objectSpawner.enabled = true;
+            Debug.Log("ObjectSpawner enabled for tapping");
+        }
+        
+        // Set the spawner to use the current target's artifact
         if (objectSpawner != null && currentTargetIndex >= 0 && currentTargetIndex < targets.Count)
         {
-            var currentTarget = targets[currentTargetIndex];
             objectSpawner.spawnOptionIndex = currentTargetIndex;
-            
-            // Make sure the prefab is in the objectPrefabs list
-            if (!objectSpawner.objectPrefabs.Contains(currentTarget.Prefab_Completed))
-            {
-                objectSpawner.objectPrefabs.Add(currentTarget.Prefab_Completed);
-                objectSpawner.spawnOptionIndex = objectSpawner.objectPrefabs.Count - 1;
-            }
         }
         // Show tap to place prompt
         if (tapToPlacePrompt != null)
@@ -469,6 +499,65 @@ public class TargetManager : MonoBehaviour
         if (tapToPlacePrompt != null)
         {
             tapToPlacePrompt.SetActive(false);
+        }
+        
+        // Disable ObjectSpawner to prevent tapping
+        if (objectSpawner != null)
+        {
+            objectSpawner.enabled = false;
+            Debug.Log("ObjectSpawner disabled to prevent tapping");
+        }
+    }
+
+    public void CleanupTappedArtifact()
+    {
+        Debug.Log("Cleaning up tapped artifact and disabling tap-to-place");
+        
+        // Disable tap to place mode
+        DisableTapToPlaceMode();
+        
+        // Disable plane detection
+        if (arPlaneManager != null)
+        {
+            arPlaneManager.enabled = false;
+        }
+        
+        // Remove all active AR objects spawned by ObjectSpawner
+        if (objectSpawner != null)
+        {
+            // Use reflection to access ObjectSpawner's private spawnedObjects dictionary
+            var spawnedObjectsField = objectSpawner.GetType().GetField("spawnedObjects", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            
+            if (spawnedObjectsField != null)
+            {
+                var spawnedObjectsDict = spawnedObjectsField.GetValue(objectSpawner) as System.Collections.Generic.Dictionary<GameObject, GameObject>;
+                
+                if (spawnedObjectsDict != null)
+                {
+                    // Create a list of objects to destroy (to avoid modifying dictionary while iterating)
+                    var objectsToDestroy = new System.Collections.Generic.List<GameObject>();
+                    
+                    foreach (var kvp in spawnedObjectsDict)
+                    {
+                        if (kvp.Value != null)
+                        {
+                            objectsToDestroy.Add(kvp.Value);
+                        }
+                    }
+                    
+                    // Destroy all spawned objects
+                    foreach (var obj in objectsToDestroy)
+                    {
+                        Debug.Log($"Destroying ObjectSpawner tracked object: {obj.name}");
+                        Destroy(obj);
+                    }
+                    
+                    // Clear the dictionary
+                    spawnedObjectsDict.Clear();
+                    Debug.Log("Cleared ObjectSpawner's spawnedObjects dictionary");
+                }
+            }
         }
     }
     
