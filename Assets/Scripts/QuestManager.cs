@@ -198,8 +198,6 @@ public class QuestManager : MonoBehaviour
         if (quizManager != null)
         {
             quizPanel.SetActive(true);
-            StartCoroutine(FadeAwayCanvas(quizPanel.GetComponent<CanvasGroup>()));
-            OnQuizCompleted();
         }
         else
         {

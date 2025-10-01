@@ -1,4 +1,8 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class QuizManager : MonoBehaviour
 {
@@ -6,6 +10,8 @@ public class QuizManager : MonoBehaviour
     public GameObject quizPanel;
 
     public static QuizManager Instance { get; private set; }
+
+    [SerializeField] private Button answerBtn;
 
     private void Awake()
     {
@@ -15,6 +21,11 @@ public class QuizManager : MonoBehaviour
             return;
         }
         Instance = this;
+    }
+
+    public void OnAnswerBtnClick() {
+        HideQuiz();
+        QuestManager.Instance.OnQuizCompleted();
     }
 
     private void Start()
