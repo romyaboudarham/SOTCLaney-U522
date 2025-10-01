@@ -38,6 +38,11 @@ public class NavBarUIManager : MonoBehaviour
 
     bool m_ShowObjectMenu;
     public GameObject instructionPanel;
+    
+    /// <summary>
+    /// Returns true if the backpack/object menu is currently open
+    /// </summary>
+    public bool IsBackpackOpen => m_ShowObjectMenu;
 
     [SerializeField]
     [Tooltip("The menu with all the creatable objects.")]

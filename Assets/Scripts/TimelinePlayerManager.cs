@@ -77,16 +77,9 @@ public class TimelinePlayerManager : MonoBehaviour
             progressSlider.value = (float)(active.time / active.duration);
             isUpdatingSlider = false;
             
-            // Debug timeline progress
-            if (activeIndex == 1) // Laney timeline
-            {
-                Debug.Log($"Laney Timeline Progress: {active.time:F2}/{active.duration:F2} ({(active.time/active.duration)*100:F1}%)");
-            }
-            
             // Check if timeline has finished
             if (active.time >= active.duration)
             {
-                Debug.Log($"Timeline {activeIndex} finished - time: {active.time:F2}, duration: {active.duration:F2}");
                 OnTimelineFinished();
             }
         }
@@ -101,18 +94,25 @@ public class TimelinePlayerManager : MonoBehaviour
         // PERFORMANCE OPTIMIZATION: Disable heavy systems during timeline
         DisablePerformanceHeavySystems();
 
-        // stop old timeline
+        // stop old timeline and reset its time to clear content
         var oldTimeline = GetActiveTimeline();
-        if (oldTimeline != null) oldTimeline.Stop();
+        if (oldTimeline != null) 
+        {
+            oldTimeline.Stop();
+            oldTimeline.time = 0; // Reset timeline time to clear old content
+            oldTimeline.Evaluate(); // Apply the reset immediately
+        }
 
         activeIndex = index;
         isPlaying = false;
         progressSlider.value = 0;
 
-        // Debug timeline info
+        // Reset the new timeline to ensure clean start
         var newTimeline = GetActiveTimeline();
         if (newTimeline != null)
         {
+            newTimeline.time = 0; // Ensure new timeline starts at beginning
+            newTimeline.Evaluate(); // Apply the reset immediately
             Debug.Log($"Timeline {index} info - Duration: {newTimeline.duration:F2}, State: {newTimeline.state}");
         }
 
@@ -185,6 +185,20 @@ public class TimelinePlayerManager : MonoBehaviour
         return null;
     }
 
+    public void ResetAllTimelines()
+    {
+        Debug.Log("Resetting all timelines to clear content");
+        foreach (var timeline in timelines)
+        {
+            if (timeline != null)
+            {
+                timeline.Stop();
+                timeline.time = 0;
+                timeline.Evaluate();
+            }
+        }
+    }
+
     public void SaveAndPause()
     {
         var active = GetActiveTimeline();
@@ -216,12 +230,14 @@ public class TimelinePlayerManager : MonoBehaviour
         // PERFORMANCE OPTIMIZATION: Re-enable heavy systems after timeline
         EnablePerformanceHeavySystems();
         
-        // Stop the timeline
+        // Stop the timeline and reset it to clear content
         var active = GetActiveTimeline();
         if (active != null)
         {
             Debug.Log($"Stopping timeline {activeIndex}, final time: {active.time:F2}, duration: {active.duration:F2}");
             active.Stop();
+            active.time = 0; // Reset timeline time to clear content
+            active.Evaluate(); // Apply the reset immediately
             isPlaying = false;
             UpdatePlayPauseIcon();
         }
@@ -238,10 +254,10 @@ public class TimelinePlayerManager : MonoBehaviour
             Debug.Log("Intro timeline finished - starting next quest step");
             questManager.StartNextQuestStep();
         }
-        else if (activeIndex == 1) {
+        else {
             // Laney timeline - cleanup tapped artifact and show quiz
-            Debug.Log("Laney timeline finished - cleaning up artifact and showing quiz");
-            
+            Debug.Log($"Quest {activeIndex} Timeline finished - cleaning up artifact and showing quiz");
+
             // Clean up the tapped artifact and disable tap-to-place
             if (targetManager != null)
             {
@@ -256,10 +272,6 @@ public class TimelinePlayerManager : MonoBehaviour
             {
                 Debug.LogError("QuestManager is null when trying to show quiz!");
             }
-        }
-        else
-        {
-            Debug.LogWarning($"Unknown timeline index {activeIndex} finished");
         }
     }
     

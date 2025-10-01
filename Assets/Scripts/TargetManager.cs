@@ -52,6 +52,7 @@ public class TargetManager : MonoBehaviour
     private MapManager mapManager;
     private BootstrapLoader bootstrapLoader;
     private TimelinePlayerManager timelinePlayerManager;
+    private NavBarUIManager navBarUIManager;
     private ILocationProvider _locationProvider; // GPS
 
     private int currentTargetIndex = 0;
@@ -64,6 +65,7 @@ public class TargetManager : MonoBehaviour
         mapManager = FindObjectOfType<MapManager>();
         bootstrapLoader = FindObjectOfType<BootstrapLoader>();
         timelinePlayerManager = FindObjectOfType<TimelinePlayerManager>();
+        navBarUIManager = FindObjectOfType<NavBarUIManager>();
         arPlaneManager = FindObjectOfType<ARPlaneManager>();
         
         if (objectSpawner == null)
@@ -376,7 +378,7 @@ public class TargetManager : MonoBehaviour
             Debug.Log($"Quest step {currentTargetIndex} reached! Waiting for completion...");
 
             // Notify QuestManager but do NOT auto-complete
-            questManager.OnTargetReached();
+            QuestManager.Instance.OnTargetReached();
         }
 
         // check for AR Target Spawn
@@ -571,10 +573,22 @@ public class TargetManager : MonoBehaviour
         // Disable tap to place mode
         DisableTapToPlaceMode();
         
-        // Trigger timeline
-        if (timelinePlayerManager != null)
+        // Check if backpack is open to determine timeline behavior
+        bool isBackpackOpen = navBarUIManager != null && navBarUIManager.IsBackpackOpen;
+        
+        if (isBackpackOpen)
         {
-            timelinePlayerManager.ActivateAndPlayTimeline(currentTargetIndex+1); // 0 is intro
+            // When backpack is open, spawn the selected object but don't play timeline
+            Debug.Log("Backpack is open - spawning object without timeline");
+        }
+        else
+        {
+            // When backpack is closed, play timeline for current step
+            Debug.Log("Backpack is closed - playing timeline for current step");
+            if (timelinePlayerManager != null)
+            {
+                timelinePlayerManager.ActivateAndPlayTimeline(currentTargetIndex+1); // 0 is intro
+            }
         }
     }
 }

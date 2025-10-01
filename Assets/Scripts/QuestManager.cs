@@ -25,6 +25,11 @@ public class QuestManager : MonoBehaviour
 
     private int currentStepIndex = -1; // -1 = greeting not done yet
 
+    public int GetCurrentStepIndex()
+    {
+        return currentStepIndex;
+    }
+
     private TargetManager targetManager;
     private NavBarUIManager navBarUIManager;
     private MapManager mapManager;
@@ -150,6 +155,12 @@ public class QuestManager : MonoBehaviour
         }
     }
 
+
+    public void OnQuizCompleted() {
+        quizManager.HideQuiz();
+        OnTargetCompleted();
+    }
+
     // Called by TargetManager when the target is reached (GPS proximity)
     public void OnTargetReached()
     {
@@ -168,11 +179,6 @@ public class QuestManager : MonoBehaviour
         targetManager.EnableTapToPlaceMode(currentStepIndex);
         
         mapManager.ShowLocationReachedPanel();
-    }
-
-    public void OnQuizCompleted() {
-        quizManager.HideQuiz();
-        OnTargetCompleted();
     }
 
     // Called when player does the required interaction to fully complete the quest
@@ -203,7 +209,8 @@ public class QuestManager : MonoBehaviour
                 targetManager.DisableTapToPlaceMode();
             }
             
-            quizPanel.SetActive(true);
+            // Use QuizManager's ShowQuiz method which handles the quiz data and UI population
+            quizManager.ShowQuiz();
         }
         else
         {
