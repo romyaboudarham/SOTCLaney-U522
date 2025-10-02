@@ -5,22 +5,12 @@ using UnityEngine;
 
 public class QuestManager : MonoBehaviour
 {
-    [Serializable]
-    public class QuestStep
-    {
-        public string questName;
-        public GameObject prefab;
-
-        [HideInInspector] public bool isReached;
-        [HideInInspector] public bool isCompleted;
-    }
 
     [SerializeField] private GameObject timelinePlayerUI;
     [SerializeField] private GameObject newQuestPanel;
     [SerializeField] private GameObject quizPanel;
     [SerializeField] private GameObject greetingPanel;
     [SerializeField] private GameObject artifactCollectedPanel;
-    [SerializeField] private List<QuestStep> questSteps;
     [SerializeField] private List<GameObject> backpackItems;
 
     private int currentStepIndex = -1; // -1 = greeting not done yet
@@ -125,17 +115,21 @@ public class QuestManager : MonoBehaviour
         targetManager.EnableLocationUpdates();
         currentStepIndex++;
 
-        if (currentStepIndex >= questSteps.Count)
+        if (currentStepIndex >= targetManager.GetTargetsCount())
         {
             Debug.Log("All quests completed!");
             return;
         }
 
-        var step = questSteps[currentStepIndex];
-        step.isReached = false;
-        step.isCompleted = false;
+        // Sync the current target index with TargetManager
+        targetManager.SetCurrentTargetIndex(currentStepIndex);
 
-        Debug.Log($"Starting quest step {currentStepIndex}: {step.questName}");
+        // Reset target state for the new step
+        targetManager.SetTargetReached(currentStepIndex, false);
+        targetManager.SetTargetCompleted(currentStepIndex, false);
+
+        string questName = targetManager.GetTargetName(currentStepIndex);
+        Debug.Log($"Starting quest step {currentStepIndex}: {questName}");
 
         if (newQuestPanel != null)
         {
@@ -148,8 +142,10 @@ public class QuestManager : MonoBehaviour
     // called by NavBarUIManager when open map button is pressed
     public void SpawnQuestsOnMap()
     {
-        if (currentStepIndex < 0 || currentStepIndex >= questSteps.Count) return;
+        if (currentStepIndex < 0 || currentStepIndex >= targetManager.GetTargetsCount()) return;
         {
+            // Sync the current target index with TargetManager
+            targetManager.SetCurrentTargetIndex(currentStepIndex);
             targetManager.ClearAllTargets();
             targetManager.InitializeAndSpawn(currentStepIndex);
         }
@@ -164,11 +160,7 @@ public class QuestManager : MonoBehaviour
     // Called by TargetManager when the target is reached (GPS proximity)
     public void OnTargetReached()
     {
-        if (currentStepIndex < 0 || currentStepIndex >= questSteps.Count) return;
-        var step = questSteps[currentStepIndex];
-
-        if (step.isReached) return; // already handled
-        step.isReached = true;
+        if (currentStepIndex < 0 || currentStepIndex >= targetManager.GetTargetsCount()) return;
 
         Debug.Log($"Quest step {currentStepIndex} reached!");
         
@@ -184,11 +176,10 @@ public class QuestManager : MonoBehaviour
     // Called when player does the required interaction to fully complete the quest
     public void OnTargetCompleted()
     {
-        if (currentStepIndex < 0 || currentStepIndex >= questSteps.Count) return;
-        var step = questSteps[currentStepIndex];
-
-        if (step.isCompleted) return;
-        step.isCompleted = true;
+        if (currentStepIndex < 0 || currentStepIndex >= targetManager.GetTargetsCount()) return;
+        
+        if (targetManager.IsTargetCompleted(currentStepIndex)) return;
+        targetManager.SetTargetCompleted(currentStepIndex, true);
 
         targetManager.MarkCurrentTargetCompleted();
         Debug.Log($"Quest step {currentStepIndex} COMPLETED!");

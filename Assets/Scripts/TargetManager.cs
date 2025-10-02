@@ -372,9 +372,6 @@ public class TargetManager : MonoBehaviour
         if (distanceToTarget <= thresholdKm && !currentTarget.reached)
         {
             targets[currentTargetIndex].reached = true;
-            Debug.Log($"Quest step {currentTargetIndex} reached! Waiting for completion...");
-
-            // Notify QuestManager but do NOT auto-complete
             QuestManager.Instance.OnTargetReached();
         }
 
@@ -558,6 +555,52 @@ public class TargetManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    // Public accessors for QuestManager
+    public int GetTargetsCount()
+    {
+        return targets.Count;
+    }
+
+    public string GetTargetName(int index)
+    {
+        if (index < 0 || index >= targets.Count) return "";
+        return targets[index].targetName;
+    }
+
+    public bool IsTargetReached(int index)
+    {
+        if (index < 0 || index >= targets.Count) return false;
+        return targets[index].reached;
+    }
+
+    public bool IsTargetCompleted(int index)
+    {
+        if (index < 0 || index >= targets.Count) return false;
+        return targets[index].completed;
+    }
+
+    public void SetTargetReached(int index, bool reached)
+    {
+        if (index < 0 || index >= targets.Count) return;
+        targets[index].reached = reached;
+    }
+
+    public void SetTargetCompleted(int index, bool completed)
+    {
+        if (index < 0 || index >= targets.Count) return;
+        targets[index].completed = completed;
+    }
+
+    public int GetCurrentTargetIndex()
+    {
+        return currentTargetIndex;
+    }
+
+    public void SetCurrentTargetIndex(int index)
+    {
+        currentTargetIndex = index;
     }
     
     // Called by ObjectSpawner when object is spawned

@@ -2076,15 +2076,6 @@ MonoBehaviour:
   quizPanel: {fileID: 1666833177}
   greetingPanel: {fileID: 2072765718}
   artifactCollectedPanel: {fileID: 546462332}
-  questSteps:
-  - questName: Laney
-    prefab: {fileID: 5713044448128491963, guid: aecaabc3683c1fe489d60bf15949bd6b, type: 3}
-    isReached: 0
-    isCompleted: 0
-  - questName: Preacher
-    prefab: {fileID: 5713044448128491963, guid: aecaabc3683c1fe489d60bf15949bd6b, type: 3}
-    isReached: 0
-    isCompleted: 0
   backpackItems:
   - {fileID: 325911276}
   - {fileID: 662756290}
@@ -2250,9 +2241,19 @@ MonoBehaviour:
     completed: 0
     currentInstance: {fileID: 0}
     arInstance: {fileID: 0}
+  - targetName: TESTLaneyStart_3
+    locationString: 37.796980894981225, -122.26339340991308
+    Prefab_Undiscovered: {fileID: 5375371263868219143, guid: 4f4e53ab6aaf3d740a639d4c4bde8c3f, type: 3}
+    SpawnScale_Undiscovered: 7
+    Prefab_Artifact: {fileID: 6918169824997873885, guid: 019b7c2026c396443ba2fa32362f97ba, type: 3}
+    MapScale_Prefab_Artifact: 150
+    reached: 0
+    completed: 0
+    currentInstance: {fileID: 0}
+    arInstance: {fileID: 0}
   - targetName: 3Ohlone
     locationString: 37.795805, -122.261250
-    Prefab_Undiscovered: {fileID: 2838120245365590677, guid: 92bf32200d6ba4f4bb539d7047c273ab, type: 3}
+    Prefab_Undiscovered: {fileID: 5375371263868219143, guid: 4f4e53ab6aaf3d740a639d4c4bde8c3f, type: 3}
     SpawnScale_Undiscovered: 7
     Prefab_Artifact: {fileID: 6918169824997873885, guid: 019b7c2026c396443ba2fa32362f97ba, type: 3}
     MapScale_Prefab_Artifact: 150
@@ -2311,12 +2312,10 @@ MonoBehaviour:
     currentInstance: {fileID: 0}
     arInstance: {fileID: 0}
   arTargetsRoot: {fileID: 1524773375}
-  anchorManager: {fileID: 0}
   debugTxt: {fileID: 758591411}
   maxArSpawnRangeMeters: 20
   arSpawnScale: 0.15
   tapToPlacePrompt: {fileID: 2117799228}
-  objectSpawner: {fileID: 0}
 --- !u!1 &546462332
 GameObject:
   m_ObjectHideFlags: 0
