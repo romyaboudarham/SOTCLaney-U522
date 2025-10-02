@@ -319,6 +319,14 @@ public class TargetManager : MonoBehaviour
         // Apply compass rotation only to object orientation, not position
         float compassHeading = GeoMathUtils.GetCompassHeading(arCamera);
         Quaternion compassRotation = Quaternion.Euler(0f, compassHeading, 0f);
+        
+        // Quick fix: Add -90° X rotation for target index 3 (4th target)
+        if (currentTargetIndex == 3)
+        {
+            Quaternion extraRotation = Quaternion.Euler(-90f, 0f, 0f);
+            compassRotation = compassRotation * extraRotation;
+        }
+        
         Pose pose = new Pose(worldPos, compassRotation);
 
         // Create an anchor GameObject at the pose and add ARAnchor component
@@ -458,6 +466,9 @@ public class TargetManager : MonoBehaviour
     {
         Debug.Log($"Enabling tap to place mode for step {stepIndex}");
         isTapToPlaceMode = true;
+        
+        // Clear ObjectSpawner's spawnedObjects dictionary to prevent blocking
+        ClearObjectSpawnerCache();
         
         // Enable plane detection using AR Foundation
         if (arPlaneManager != null)
@@ -610,24 +621,52 @@ public class TargetManager : MonoBehaviour
         
         if (!isTapToPlaceMode) return;
         
-        // Disable tap to place mode
-        DisableTapToPlaceMode();
+        // Quick fix: Add -90° X rotation for target index 3 (4th target) when spawned on tap
+        if (currentTargetIndex == 3)
+        {
+            spawnedObject.transform.Rotate(-90f, 0f, 0f, Space.Self);
+        }
         
         // Check if backpack is open to determine timeline behavior
         bool isBackpackOpen = navBarUIManager != null && navBarUIManager.IsBackpackOpen;
         
         if (isBackpackOpen)
         {
-            // When backpack is open, spawn the selected object but don't play timeline
-            Debug.Log("Backpack is open - spawning object without timeline");
+            // When backpack is open, spawn the selected object but don't play timeline and keep tap-to-place active
+            Debug.Log("Backpack is open - spawning object without timeline, keeping tap-to-place active");
+            // Don't disable tap-to-place mode - let user keep tapping to place more objects
         }
         else
         {
-            // When backpack is closed, play timeline for current step
+            // When backpack is closed, play timeline for current step and disable tap-to-place
             Debug.Log("Backpack is closed - playing timeline for current step");
             if (timelinePlayerManager != null)
             {
                 timelinePlayerManager.ActivateAndPlayTimeline(currentTargetIndex+1); // 0 is intro
+            }
+            // Disable tap to place mode
+            DisableTapToPlaceMode();
+        }
+    }
+
+    private void ClearObjectSpawnerCache()
+    {
+        if (objectSpawner != null)
+        {
+            // Use reflection to access ObjectSpawner's private spawnedObjects dictionary
+            var spawnedObjectsField = objectSpawner.GetType().GetField("spawnedObjects", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            
+            if (spawnedObjectsField != null)
+            {
+                var spawnedObjectsDict = spawnedObjectsField.GetValue(objectSpawner) as System.Collections.Generic.Dictionary<GameObject, GameObject>;
+                
+                if (spawnedObjectsDict != null)
+                {
+                    // Clear the dictionary to allow spawning of the same prefab type
+                    spawnedObjectsDict.Clear();
+                    Debug.Log("Cleared ObjectSpawner cache for new tap-to-place session");
+                }
             }
         }
     }

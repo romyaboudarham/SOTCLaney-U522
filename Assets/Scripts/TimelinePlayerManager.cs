@@ -255,8 +255,8 @@ public class TimelinePlayerManager : MonoBehaviour
             questManager.StartNextQuestStep();
         }
         else {
-            // Laney timeline - cleanup tapped artifact and show quiz
-            Debug.Log($"Quest {activeIndex} Timeline finished - cleaning up artifact and showing quiz");
+            // Laney timeline - cleanup tapped artifact and show quiz or completion panel
+            Debug.Log($"Quest {activeIndex} Timeline finished - cleaning up artifact");
 
             // Clean up the tapped artifact and disable tap-to-place
             if (targetManager != null)
@@ -266,7 +266,19 @@ public class TimelinePlayerManager : MonoBehaviour
             
             if (questManager != null)
             {
-                questManager.ShowQuiz();
+                // Check if this is the final target timeline
+                bool isFinalTarget = questManager.IsCurrentTargetFinal();
+                
+                if (isFinalTarget)
+                {
+                    Debug.Log($"Final target timeline {activeIndex} completed! Showing completion panel.");
+                    questManager.ShowCompletedPanel();
+                }
+                else
+                {
+                    Debug.Log($"Quest {activeIndex} Timeline finished - showing quiz");
+                    questManager.ShowQuiz();
+                }
             }
             else
             {

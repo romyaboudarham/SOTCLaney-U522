@@ -12,12 +12,24 @@ public class QuestManager : MonoBehaviour
     [SerializeField] private GameObject greetingPanel;
     [SerializeField] private GameObject artifactCollectedPanel;
     [SerializeField] private List<GameObject> backpackItems;
+    
+    [Header("Completion Settings")]
+    [SerializeField] private GameObject completedPanel; // Inspector-assignable completion panel
+    [SerializeField] private int finalTargetIndex = -1; // Inspector-assignable final target index (-1 = use last target automatically)
 
     private int currentStepIndex = -1; // -1 = greeting not done yet
 
     public int GetCurrentStepIndex()
     {
         return currentStepIndex;
+    }
+
+    public bool IsCurrentTargetFinal()
+    {
+        bool isFinalTarget = (finalTargetIndex >= 0) ? 
+            (currentStepIndex == finalTargetIndex) : 
+            (currentStepIndex == targetManager.GetTargetsCount() - 1);
+        return isFinalTarget;
     }
 
     private TargetManager targetManager;
@@ -77,6 +89,19 @@ public class QuestManager : MonoBehaviour
     {
         Debug.Log("Hiding artifact collected panel");
         artifactCollectedPanel.SetActive(false);
+    }
+
+    public void ShowCompletedPanel()
+    {
+        Debug.Log("Showing completed panel - all quests finished!");
+        if (completedPanel != null)
+        {
+            completedPanel.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning("Completed panel not assigned in inspector!");
+        }
     }
 
     public void SpawnUnreachedTargetInAR()
@@ -186,6 +211,8 @@ public class QuestManager : MonoBehaviour
 
         backpackItems[currentStepIndex].SetActive(true);
         navBarUIManager.BackpackNewItem();
+        
+        // Always show artifact collected panel for target completion
         ShowArtifactCollectedPanel();
         StartCoroutine(FadeAwayCanvas(artifactCollectedPanel.GetComponent<CanvasGroup>()));
     }
